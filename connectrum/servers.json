@@ -1,0 +1,410 @@
+[
+  {
+    "seen_at": 1465686119.022576,
+    "ports": "t s",
+    "nickname": "DEVV",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "ilikehuskies.no-ip.org"
+  },
+  {
+    "seen_at": 1465686119.966315,
+    "ports": "t h s g",
+    "nickname": "DragonZone",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "electrum.dragonzone.net"
+  },
+  {
+    "seen_at": 1465686119.02029,
+    "ports": "t s110",
+    "nickname": "ECDSA",
+    "pruning_limit": 100,
+    "version": "1.0",
+    "hostname": "ecdsa.net"
+  },
+  {
+    "seen_at": 1465686119.020727,
+    "ports": "t s",
+    "nickname": "ECO",
+    "pruning_limit": 100,
+    "version": "1.0",
+    "hostname": "ultra-ecoelectrum.my-gateway.de"
+  },
+  {
+    "seen_at": 1465686119.022112,
+    "ports": "t s",
+    "nickname": "JWU42",
+    "pruning_limit": 1000,
+    "version": "1.0",
+    "hostname": "ELECTRUM.jdubya.info"
+  },
+  {
+    "seen_at": 1465686119.022186,
+    "ports": "t50003 s50004",
+    "nickname": "JWU42[b]",
+    "pruning_limit": 1000,
+    "version": "1.0",
+    "hostname": "jwu42.hopto.org"
+  },
+  {
+    "seen_at": 1465686119.02204,
+    "ports": "t80 s443",
+    "nickname": "Luggs",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "elec.luggs.co"
+  },
+  {
+    "seen_at": 1465686119.020677,
+    "ports": "t s",
+    "nickname": "NOIP",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "electrum.no-ip.org"
+  },
+  {
+    "seen_at": 1465686119.020231,
+    "ports": "t s",
+    "nickname": "Online",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "Electrum.Online"
+  },
+  {
+    "seen_at": 1465686119.022244,
+    "ports": "t s",
+    "nickname": "Pielectrum",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "ELEC.Pieh0.co.uk"
+  },
+  {
+    "seen_at": 1465686119.944136,
+    "ports": "t s",
+    "nickname": "Pielectrum_TOR",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "electrumx67xeros.onion"
+  },
+  {
+    "seen_at": 1465686119.945171,
+    "ports": "t0 s",
+    "nickname": "RMevaere",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "electrum.mevaere.fr"
+  },
+  {
+    "seen_at": 1465686119.021272,
+    "ports": "t s",
+    "nickname": "Snipa",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "electrum.snipanet.com"
+  },
+  {
+    "seen_at": 1465686119.021663,
+    "ports": "t s",
+    "nickname": "US",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "us.electrum.be"
+  },
+  {
+    "seen_at": 1465686119.022705,
+    "ports": "t s",
+    "nickname": "anducknetelect",
+    "pruning_limit": 100,
+    "version": "1.0",
+    "hostname": "anduck.net"
+  },
+  {
+    "seen_at": 1465686119.020339,
+    "ports": "t s",
+    "nickname": "anonymized1",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "electrum.anonymized.io"
+  },
+  {
+    "seen_at": 1465686119.022753,
+    "ports": "t s",
+    "nickname": "antumbra",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "antumbra.se"
+  },
+  {
+    "seen_at": 1465686119.021714,
+    "ports": "t s",
+    "nickname": "clueless",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "cluelessperson.com"
+  },
+  {
+    "seen_at": 1465686119.945338,
+    "ports": "t s",
+    "nickname": "condor1003",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "condor1003.server4you.de"
+  },
+  {
+    "seen_at": 1465686119.96599,
+    "ports": "t s",
+    "nickname": "cplus",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "btc1.commerce-plus.com"
+  },
+  {
+    "seen_at": 1465686119.965912,
+    "ports": "t s",
+    "nickname": "cplus_tor",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "rvm6c7kj63mtztgn.onion"
+  },
+  {
+    "seen_at": 1465686119.040277,
+    "ports": "t s",
+    "nickname": "dogydins",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "electrum.villocq.com"
+  },
+  {
+    "seen_at": 1465686119.022801,
+    "ports": "t s",
+    "nickname": "dunp",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "erbium1.sytes.net"
+  },
+  {
+    "seen_at": 1465686119.945237,
+    "ports": "t s",
+    "nickname": "electroli",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "46.166.165.18"
+  },
+  {
+    "seen_at": 1465686119.945288,
+    "ports": "t s",
+    "nickname": "electron",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "gh05.geekhosters.com"
+  },
+  {
+    "seen_at": 1465686119.94539,
+    "ports": "t s",
+    "nickname": "eniac",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "electrum0.snel.it"
+  },
+  {
+    "seen_at": 1465686119.020781,
+    "ports": "t40001 s40002",
+    "nickname": "faro",
+    "pruning_limit": 100,
+    "version": "1.0",
+    "hostname": "electrum.site2.me"
+  },
+  {
+    "seen_at": 1465686119.022509,
+    "ports": "t s",
+    "nickname": "fydel",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "ele.einfachmalnettsein.de"
+  },
+  {
+    "seen_at": 1465686119.02234,
+    "ports": "t s",
+    "nickname": "fydel_tor",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "ixxdq23ewy77sau6.onion"
+  },
+  {
+    "seen_at": 1465686119.020941,
+    "ports": "t s",
+    "nickname": "gORlECTRUM",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "ELECTRUM.top-master.com"
+  },
+  {
+    "seen_at": 1465686119.022292,
+    "ports": "t s",
+    "nickname": "hachre",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "electrum3.hachre.de"
+  },
+  {
+    "seen_at": 1465686119.020021,
+    "ports": "t8080 s995",
+    "nickname": "hsmiths",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "Electrum.hsmiths.com"
+  },
+  {
+    "seen_at": 1465686118.997997,
+    "ports": "t s",
+    "nickname": "hsmiths2",
+    "pruning_limit": 100,
+    "version": "1.0",
+    "hostname": "VPS.hsmiths.com"
+  },
+  {
+    "seen_at": 1465686119.020474,
+    "ports": "t s",
+    "nickname": "j_fdk_b",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "b.1209k.com"
+  },
+  {
+    "seen_at": 1465686119.020525,
+    "ports": "t s",
+    "nickname": "j_fdk_b_tor",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "fdkbwjykvl2f3hup.onion"
+  },
+  {
+    "seen_at": 1465686119.020997,
+    "ports": "t s",
+    "nickname": "j_fdk_h",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "h.1209k.com"
+  },
+  {
+    "seen_at": 1465686119.021149,
+    "ports": "t s",
+    "nickname": "j_fdk_h_tor",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "fdkhv2bb7hqel2e7.onion"
+  },
+  {
+    "seen_at": 1465686119.021092,
+    "ports": "t s",
+    "nickname": "j_fdk_mash_tor",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "mashtk6hmnysevfj.onion"
+  },
+  {
+    "seen_at": 1465686119.021216,
+    "ports": "t s",
+    "nickname": "j_frighten_swo",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "electrum.vom-stausee.de"
+  },
+  {
+    "seen_at": 1465686119.021765,
+    "ports": "t h s g",
+    "nickname": "mindspot",
+    "pruning_limit": 100,
+    "version": "1.0",
+    "hostname": "electrum.mindspot.org"
+  },
+  {
+    "seen_at": 1465686119.966419,
+    "ports": "t s",
+    "nickname": "molec",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "electrum.0x0000.de"
+  },
+  {
+    "seen_at": 1465686119.945437,
+    "ports": "t s",
+    "nickname": "mustyoshi",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "btc.mustyoshi.com"
+  },
+  {
+    "seen_at": 1465686119.021477,
+    "ports": "t s",
+    "nickname": "neocrypto",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "electrum.neocrypto.io"
+  },
+  {
+    "seen_at": 1465686119.020614,
+    "ports": "t s",
+    "nickname": "netpros",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "electrum.netpros.co"
+  },
+  {
+    "seen_at": 1465686119.021612,
+    "ports": "t110 s995",
+    "nickname": "selavi",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "btc.smsys.me"
+  },
+  {
+    "seen_at": 1465686119.021559,
+    "ports": "t s",
+    "nickname": "selavi_tor",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "ozahtqwp25chjdjd.onion"
+  },
+  {
+    "seen_at": 1465686119.966188,
+    "ports": "t s",
+    "nickname": "stoff-sammlung",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "electrum.stoff-sammlung.de"
+  },
+  {
+    "seen_at": 1465686119.02263,
+    "ports": "t s",
+    "nickname": "trouth",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "electrum.trouth.net"
+  },
+  {
+    "seen_at": 1465686119.040206,
+    "ports": "t s",
+    "nickname": "trouth_eu",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "electrum-europe.trouth.net"
+  },
+  {
+    "seen_at": 1465686119.020178,
+    "ports": "t s",
+    "nickname": "ulrichard",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "ulrichard.ch"
+  },
+  {
+    "seen_at": 1465686119.020088,
+    "ports": "t s",
+    "nickname": "villocq2",
+    "pruning_limit": 10000,
+    "version": "1.0",
+    "hostname": "electrum2.villocq.com"
+  }
+]
