@@ -17,3 +17,7 @@ This is meant to be a mostly-clean room implementation, but isn't.
     virtualenv -p python3 ENV
     (activate ENV)
 
+
+## References
+
+https://github.com/python/asyncio/wiki/ThirdParty

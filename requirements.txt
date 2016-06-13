@@ -1,2 +1,2 @@
 # for IRC poll of servers; somewhat optional?
-irc >= 11, <=14.0
+bottom>=1.0.1
