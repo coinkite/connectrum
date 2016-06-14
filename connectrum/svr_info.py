@@ -11,13 +11,16 @@ class ServerInfo(dict):
     '''
     FIELDS = ['nickname', 'hostname', 'ports', 'version', 'pruning_limit', 'seen_at']
 
-    def __init__(self, nickname, hostname, ports, version=None, pruning_limit=None):
-        self['nickname'] = nickname
-        self['hostname'] = hostname
-        self['ports'] = ports
-        self['version'] = version
-        self['pruning_limit'] = int(pruning_limit or 0)
-        self['seen_at'] = time.time()
+    def __init__(self, nickname_or_dict, hostname=None, ports=None, version=None, pruning_limit=None):
+        if not hostname and not ports:
+            super(ServerInfo, self).__init__(nickname_or_dict)
+        else:
+            self['nickname'] = nickname_or_dict
+            self['hostname'] = hostname
+            self['ports'] = ports
+            self['version'] = version
+            self['pruning_limit'] = int(pruning_limit or 0)
+            self['seen_at'] = time.time()
 
     @classmethod
     def from_dict(cls, d):
@@ -41,7 +44,7 @@ class ServerInfo(dict):
 
     def get_port(self, for_protocol):
         '''
-            Return (hostname, port number) pair for the protocol.
+            Return (hostname, port number, ssl) pair for the protocol.
             Assuming only one port per host.
         '''
         assert len(for_protocol) == 1, "expect single letter code"
@@ -52,7 +55,9 @@ class ServerInfo(dict):
 
         port = DEFAULT_PORTS[for_protocol] if len(rv) == 1 else int(rv[1:])
 
-        return self['hostname'], port
+        use_ssl = for_protocol in ('s', 'g')
+
+        return self['hostname'], port, use_ssl
         
 
     @property
