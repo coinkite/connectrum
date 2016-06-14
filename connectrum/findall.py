@@ -1,200 +1,147 @@
-# XXX rewrite for irc3 and python3 and asyncio!
-# or better? https://github.com/numberoverzero/bottom
-
-#!/usr/bin/env python
+#!/usr/bin/env python3 
 #
-# Heavily based on ircthread.py from electrum.
 #
-# Copyright(C) 2016 Opendime
-# Copyright(C) 2011-2016 Thomas Voegtlin
-#
-# Permission is hereby granted, free of charge, to any person
-# obtaining a copy of this software and associated documentation files
-# (the "Software"), to deal in the Software without restriction,
-# including without limitation the rights to use, copy, modify, merge,
-# publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so,
-# subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be
-# included in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
-# BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
-# ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
-import re
-import time
-import socket
-import random
-import ssl
-import threading
-import time
-import csv
-import Queue
-import irc.client
+import bottom, random, time, asyncio
 from utils import logger
-from srv_info import ServerInfo
-from collections import OrderedDict
-from pprint import pformat
-        
+from svr_info import ServerInfo
 
-class IrcSampler(threading.Thread):
 
-    def __init__(self, nick=None, password=None):
-        threading.Thread.__init__(self)
+class IrcListener(bottom.Client):
+    def __init__(self, irc_nickname=None, irc_password=None, ssl=True):
+        self.my_nick = irc_nickname or 'XC%d' % random.randint(1E11, 1E12)
+        self.password = irc_password or None
 
-        self.nick = nick or 'S%dN' % random.randint(1E11, 1E12)
-        self.password = password
-        self.who_queue = Queue.Queue()
-        self.results = OrderedDict()
-        self.stopped = False
-        self.daemon = True
-        self.state = 'init'
+        self.results = {}
+        self.servers = set()
+        self.all_done = asyncio.Event()
 
-    def getname(self):
-        return "Client at " + self.nick
+        super(IrcListener, self).__init__(host='irc.freenode.net', port=6697 if ssl else 6667, ssl=ssl)
 
-    def start(self, queue):
-        self.queue = queue
-        self.state = 'started'
-        threading.Thread.start(self)
+        # setup event handling
+        self.on('CLIENT_CONNECT', self.connected)
+        self.on('PING', self.keepalive)
+        self.on('JOIN', self.joined)
+        self.on('RPL_NAMREPLY', self.got_users)
+        self.on('WHOREPLY', self.got_who_reply)
+        self.on("client_disconnect", self.reconnect)
+        self.on('RPL_ENDOFNAMES', self.got_end_of_names)
 
-    def on_connect(self, connection, event):
-        connection.join("#electrum")
-        self.state = 'connected'
-        logger.info("Connected")
+    async def collect_data(self):
+        # start it process
+        self.loop.create_task(self.connect())
 
-    def on_join(self, connection, event):
-        self.state = 'joined'
-        logger.info("Joined channel")
-        m = re.match("(E_.*)!", event.source)
-        if m:
-            self.who_queue.put((connection, m.group(1)))
+        # wait until done
+        await self.all_done.wait()
 
-    def on_disconnect(self, connection, event):
-        self.state = 'disconnected'
-        logger.info("Disconnected from server")
-        raise StopIteration
+        # return the results
+        return self.results
 
-    def on_who(self, connection, event):
-        # received a response from our whois request
-        line = str(event.arguments[6]).split()
+    def connected(self, **kwargs):
+        logger.debug("Connected")
+        self.send('NICK', nick=self.my_nick)
+        self.send('USER', user=self.my_nick, realname='Connectrum Client')
+        # long delay here as it does an failing Ident probe (10 seconds min)
+        self.send('JOIN', channel='#electrum')
+        #self.send('WHO', mask='E_*')
 
-        nick = event.arguments[4]
+    def keepalive(self, message, **kwargs):
+        self.send('PONG', message=message)
+
+    async def joined(self, nick=None, **kwargs):
+        # happens when we or someone else joins the channel
+        # seem to take 10 seconds or longer for me to join
+        logger.debug('Joined: %r' % kwargs)
+
+        if nick != self.my_nick:
+            await self.add_server(nick)
+
+    async def got_who_reply(self, nick=None, real_name=None, **kws):
+        #logger.debug('who rep: %r' % kws)
+
         nick = nick[2:] if nick[0:2] == 'E_' else nick
-        host = line[1]
+        host, features = real_name.split(' ', 1)
 
-        pl, version, ports = None, None, []
-        for p in line[2:]:
+        self.servers.remove(nick)
+
+        prune, version, ports = None, None, []
+        for p in features.split(' '):
             if p[0] == 'v':
                 version = p[1:]
             elif p[0] == 'p':
-                pl = int(p[1:])
+                prune = int(p[1:])
             else:
                 ports.append(p)
 
-        #logger.debug("Found: '%s' at %s with ports %s" % (nick, host, ' '.join(ports)))
+        logger.debug("Found: '%s' at %s with ports %s" % (nick, host, ' '.join(ports)))
         self.results[nick] = ServerInfo(nick, host, ' '.join(ports),
-                                                version=version, pruning_limit=pl)
+                                                version=version, pruning_limit=prune)
 
-    def on_name(self, connection, event):
-        for s in event.arguments[2].split():
-            if s.startswith("E_"):
-                self.who_queue.put((connection, s))
+        if not self.servers:
+            self.all_done.set()
 
-    def who_thread(self):
-        while not self.stopped:
-            try:
-                connection, s = self.who_queue.get(timeout=3)
-            except Queue.Empty:
-                if self.results:
-                    #print pformat(dict(self.results))
-                    logger.info("Got %d results" % len(self.results))
-                    self.status = 'done'
+    async def got_users(self, users=[], **kws):
+        # After successful join to channel, we are given a list of 
+        # users on the channel. Happens a few times for busy channels.
+        logger.debug('Got %d (more) users in channel', len(users))
 
-                    self.connection.quit('Thanks')
-                    break
+        for nick in users:
+            await self.add_server(nick)
 
-                continue
+    async def add_server(self, nick):
+        # ignore everyone but electrum servers
+        if nick.startswith('E_'):
+            self.servers.add(nick[2:])
 
-            #print "WHO: " + s
-            connection.who(s)
-            #time.sleep(0.10)
+    async def who_worker(self):
+        # Fetch details on each Electrum server nick we see
+        logger.debug('who task starts')
+        copy = self.servers.copy()
+        for nn in copy:
+            logger.debug('do WHO for: ' + nn)
+            self.send('WHO', mask='E_'+nn)
 
-        logger.info("Who thread stops")
+        logger.debug('who task done')
 
-    def run(self):
-        # avoid UnicodeDecodeError using LenientDecodingLineBuffer
-        irc.client.ServerConnection.buffer_class = irc.buffer.LenientDecodingLineBuffer
-        logger.info("Start IRC client connection")
+    def got_end_of_names(self, *a, **k):
+        logger.debug('Got all the user names')
 
-        t = threading.Thread(target=self.who_thread)
-        t.daemon = True
-        t.start()
+        assert self.servers, "No one on channel!"
 
-        client = irc.client.Reactor()
+        # ask for details on all of those users
+        self.loop.create_task(self.who_worker())
 
-        try:
-            #bind_address = (self.irc_bind_ip, 0) if self.irc_bind_ip else None
-            #ssl_factory = irc.connection.Factory(wrapper=ssl.wrap_socket, bind_address=bind_address)
-            #c = client.server().connect('irc.freenode.net', 6697, self.nick, self.password, ircname=self.nick, connect_factory=ssl_factory)
-            c = client.server().connect('irc.freenode.net', 6667, self.nick, self.password, ircname=self.nick) 
-            self.state = 'connecting'
-        except irc.client.ServerConnectionError:
-            logger.exception('irc connect')
-            raise
-            #self.state = 'disconnected'
-            #time.sleep(10)
-            #continue
 
-        logger.info("Connecting to Freenode")
+    async def reconnect(self, **kwargs):
+        # Trigger an event that may cascade to a client_connect.
+        # Don't continue until a client_connect occurs, which may be never.
 
-        c.add_global_handler("welcome", self.on_connect)
-        c.add_global_handler("join", self.on_join)
-        #c.add_global_handler("quit", self.on_quit)
-        #c.add_global_handler("kick", self.on_kick)
-        c.add_global_handler("whoreply", self.on_who)
-        c.add_global_handler("namreply", self.on_name)
-        c.add_global_handler("disconnect", self.on_disconnect)
-        c.set_keepalive(60)
+        logger.warn("Disconnected (will reconnect)")
 
-        self.connection = c
-        try:
-            client.process_forever()
-        except StopIteration:
-            pass
-        except KeyboardInterrupt:
-            raise
+        # Note that we're not in a coroutine, so we don't have access
+        # to await and asyncio.sleep
+        time.sleep(3)
 
-        t.stop()
+        # After this line we won't necessarily be connected.
+        # We've simply scheduled the connect to happen in the future
+        self.loop.create_task(self.connect())
 
-        logger.info("Done with IRC")
+        logger.debug("Reconnect scheduled.")
+
 
 if __name__ == '__main__':
-    '''
-        When run on the command line, this program connects to IRC
-        and downloads a list of all servers there and writes into
-        a file in the current directory.
-    '''
+
 
     import logging
-    logger.setLevel(logging.DEBUG)
+    logging.getLogger('bottom').setLevel(logging.DEBUG)
+    logging.getLogger('connectrum').setLevel(logging.DEBUG)
+    logging.getLogger('asyncio').setLevel(logging.DEBUG)
 
-    th = IrcSampler()
-    th.run()
 
-    rows = sorted(th.results.keys())
+    bot = IrcListener()
+    bot.loop.set_debug(True)
+    fut = bot.collect_data()
+    #bot.loop.create_task(bot.connect())
+    rv = bot.loop.run_until_complete(fut)
 
-    import csv
-    with file('servers.csv', 'wb') as fp:
-        c = csv.DictWriter(fp, ServerInfo.FIELDS)
-        c.writeheader()
-        c.writerows([th.results[k] for k in rows])
-
+    print(rv)
 

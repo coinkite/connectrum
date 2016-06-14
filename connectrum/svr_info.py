@@ -90,13 +90,17 @@ class KnownServers(dict):
 
             Slow; takes 30+ seconds but authoritative and current.
         '''
-        from findall import IrcSampler
+        from findall import IrcListener
+        
+        # connect and fetch current set of servers who are
+        # on #electrum channel at freenode
 
-        th = IrcSampler(irc_nickname, irc_password)
-        th.run()
+        bot = IrcListener(irc_nickname=irc_nickname, irc_password=irc_password)
+        results = bot.loop.run_until_complete(bot.collect_data())
+        bot.loop.close()
 
         # merge by nick name
-        self.update(th.results)
+        self.update(results)
 
     def add_single(self, hostname, ports, nickname=None, **kws):
         '''
@@ -141,8 +145,8 @@ if __name__ == '__main__':
 
     ks = KnownServers()
 
-    ks.from_json('servers.json')
-    #ks.from_irc('testing')
+    #ks.from_json('servers.json')
+    ks.from_irc()
 
     #print (ks.dump())
 
