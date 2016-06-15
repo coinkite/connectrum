@@ -2,7 +2,7 @@
 # Store information about servers. Filter and select based on their protocol support, etc.
 #
 import time, random, json
-from constants import DEFAULT_PORTS
+from .constants import DEFAULT_PORTS
 
 
 class ServerInfo(dict):
@@ -30,20 +30,23 @@ class ServerInfo(dict):
         # - keep version and pruning limit separate
         #
         if isinstance(ports, int):
-            ports = 't%d' % ports
+            ports = ['t%d' % ports]
         elif ' ' in ports:
-            plist = []
+            ports = ports.split()
 
-            for p in ports.split(' '):
-                if p[0] == 'v':
-                    version = p[1:]
-                elif p[0] == 'p':
+        # check we don't have junk in the ports list
+        for p in ports.copy():
+            if p[0] == 'v':
+                version = p[1:]
+                ports.remove(p)
+            elif p[0] == 'p':
+                try:
                     pruning_limit = int(p[1:])
-                else:
-                    plist.append(p)
+                except ValueError:
+                    # ignore junk
+                    pass
+                ports.remove(p)
 
-            ports = plist
-            
         assert ports, "Must have at least one port/protocol"
         assert not isinstance(ports, str), "Ports is a list of strings"
 
@@ -85,7 +88,13 @@ class ServerInfo(dict):
         if not rv:
             return None
 
-        port = DEFAULT_PORTS[for_protocol] if len(rv) == 1 else int(rv[1:])
+        port = None
+        if len(rv) >= 2:
+            try:
+                port = int(rv[1:])
+            except:
+                pass
+        port = port or DEFAULT_PORTS[for_protocol]
 
         use_ssl = for_protocol in ('s', 'g')
 
@@ -101,7 +110,8 @@ class ServerInfo(dict):
                                         .format(**self)
 
     def __str__(self):
-        return '{hostname} [{ports}]'.format(**self)
+        # used as a dict key in a few places.
+        return self['hostname'].lower()
 
 class KnownServers(dict):
     '''
@@ -110,6 +120,9 @@ class KnownServers(dict):
         - can add single entries
         - can read from a CSV for seeding/bootstrap
         - can read from IRC channel to find current hosts
+
+        We are a dictionary, with key being the hostname (in lowercase)
+        of the servers.
     '''
 
     def from_json(self, fname):
@@ -119,7 +132,7 @@ class KnownServers(dict):
         with open(fname, 'rt') as fp:
             for row in json.load(fp):
                 nn = ServerInfo.from_dict(row)
-                self[nn['hostname'].lower()] = nn
+                self[str(nn)] = nn
 
     def from_irc(self, irc_nickname=None, irc_password=None):
         '''
@@ -147,16 +160,17 @@ class KnownServers(dict):
         '''
         nickname = nickname or hostname
 
-        self[hostname] = ServerInfo(nickname, hostname, ports, **kws)
+        self[hostname.lower()] = ServerInfo(nickname, hostname, ports, **kws)
 
-    def add_peer_response(cls, response_list):
+    def add_peer_response(self, response_list):
         # Update with response from Stratum (lacks the nickname value tho):
         #
         #      "91.63.237.12",
         #      "electrum3.hachre.de",
         #      [ "v1.0", "p10000", "t", "s" ]
         #
-        for parms in response_list:
+        additions = set()
+        for params in response_list:
             ip_addr, hostname, ports = params
 
             if ip_addr == hostname:
@@ -165,20 +179,26 @@ class KnownServers(dict):
             g = self.get(hostname.lower())
             nickname = g['nickname'] if g else None
 
-            self[hostname] = ServerInfo(nickname, host, ports, ip_addr=ip_addr)
+            here = ServerInfo(nickname, hostname, ports, ip_addr=ip_addr)
+            self[str(here)] = here
+
+            if not g:
+                additions.add(str(here))
+
+        return additions
 
     def save_json(self, fname='servers.json'):
         '''
             Write out to a CSV file.
         '''
         rows = sorted(self.keys())
-        with file(fname, 'wb') as fp:
-            json.dump(fp, [self[k] for k in rows], indent=2)
+        with open(fname, 'wt') as fp:
+            json.dump([self[k] for k in rows], fp, indent=1)
 
     def dump(self):
         return '\n'.join(repr(i) for i in self.values())
 
-    def select(self, protocol, is_onion=False, min_prune=1):
+    def select(self, protocol, is_onion=None, min_prune=1):
         '''
             Find all servers with indicated protocol support. Shuffled.
 
@@ -186,7 +206,7 @@ class KnownServers(dict):
         '''
         lst = [i for i in self.values() 
                             if (protocol in i.protocols)
-                                and (i.is_onion == is_onion)
+                                and (i.is_onion == is_onion if is_onion is not None else True)
                                 and (i.pruning_limit >= min_prune) ]
 
         random.shuffle(lst)

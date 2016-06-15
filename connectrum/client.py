@@ -2,9 +2,9 @@
 # Client connect to an Electrum server.
 #
 import json, warnings, asyncio, ssl
-from protocol import StratumProtocol
+from .protocol import StratumProtocol
 import aiosocks
-from utils import logger
+from .utils import logger
 
 class StratumClient:
 

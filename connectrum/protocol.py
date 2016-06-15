@@ -2,9 +2,8 @@
 # Implement an asyncio.Protocol for Electrum (clients)
 #
 #
-import asyncio
-from utils import logger
-import json
+import asyncio, json
+from .utils import logger
 
 class StratumProtocol(asyncio.Protocol):
     client = None
