@@ -21,7 +21,7 @@ class StratumClient:
 
         self.loop = loop or asyncio.get_event_loop()
 
-        # next step; call connect()
+        # next step: call connect()
 
     async def connect(self, server_info, proto_code='s', *,
                             use_tor=False, disable_cert_verify=False,
@@ -32,6 +32,12 @@ class StratumClient:
         '''
         self.server_info = server_info
         self.proto_code = proto_code
+
+        if proto_code == 'g':       # websocket
+            # to do this, we'll need a websockets implementation that
+            # operates more like a asyncio.Transport
+            # maybe: `asyncws` or `aiohttp` 
+            raise NotImplementedError('sorry no WebSocket transport yet')
 
         hostname, port, use_ssl = server_info.get_port(proto_code)
 
