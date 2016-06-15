@@ -198,7 +198,7 @@ class KnownServers(dict):
     def dump(self):
         return '\n'.join(repr(i) for i in self.values())
 
-    def select(self, protocol, is_onion=None, min_prune=1):
+    def select(self, protocol='s', is_onion=None, min_prune=1):
         '''
             Find all servers with indicated protocol support. Shuffled.
 

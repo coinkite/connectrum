@@ -55,7 +55,7 @@ if __name__ == '__main__':
         if a.endswith('.json'):
             ks.from_json(a)
 
-    ks.from_json('../connectrum/servers.json')
+    #ks.from_json('../connectrum/servers.json')
 
     print("%d servers are known to us at start" % len(ks))
 
