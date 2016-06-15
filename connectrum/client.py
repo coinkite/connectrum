@@ -1,18 +1,18 @@
 #
 # Client connect to an Electrum server.
 #
-import json, warnings, asyncio
+import json, warnings, asyncio, ssl
 from protocol import StratumProtocol
+import aiosocks
+from utils import logger
 
 class StratumClient:
 
-    def __init__(self, server_info, proto_code='s', loop=None, onion_only=False):
+    def __init__(self, loop=None):
         '''
             Setup state needed to handle req/resp from a single Stratum server.
             Requires a transport (TransportABC) object to do the communication.
         '''
-        self.server = server_info
-        self.proto_code = proto_code
         self.protocol = None
 
         self.next_id = 1
@@ -23,25 +23,59 @@ class StratumClient:
 
         # next step; call connect()
 
-    async def connect(self):
+    async def connect(self, server_info, proto_code='s', *,
+                            use_tor=False, disable_cert_verify=False,
+                            proxy=None):
         '''
             Start connection process.
+            Destination must be specified in a ServerInfo() record.
         '''
-        hostname, port, use_ssl = self.server.get_port(self.proto_code)
+        self.server_info = server_info
+        self.proto_code = proto_code
 
-        transport, protocol = await self.loop.create_connection(StratumProtocol, host=hostname, port=port, ssl=use_ssl)
+        hostname, port, use_ssl = server_info.get_port(proto_code)
+
+        if use_tor:
+            # connect via Tor proxy proxy, assumed to be on localhost:9050
+            try:
+                socks_host, socks_port = use_tor
+            except TypeError:
+                socks_host, socks_port = 'localhost', 9150
+
+            disable_cert_verify = True
+
+            assert not proxy, "Sorry not yet supporting proxy->tor->dest"
+
+            proxy = aiosocks.Socks5Addr(socks_host, int(socks_port))
+
+        if use_ssl == True and disable_cert_verify:
+            # Create a more liberal SSL context that won't
+            # object to self-signed certicates. This is 
+            # very bad on public Internet, but probably ok
+            # over Tor
+            use_ssl = ssl.create_default_context()
+            use_ssl.check_hostname = False
+            use_ssl.verify_mode = ssl.CERT_NONE
+
+        if proxy:
+            transport, protocol = await aiosocks.create_connection(
+                                    StratumProtocol, proxy=proxy,
+                                    proxy_auth=None,
+                                    remote_resolve=True, ssl=use_ssl,
+                                    dst=(hostname, port))
+            
+        else:
+            transport, protocol = await self.loop.create_connection(
+                                                    StratumProtocol, host=hostname,
+                                                    port=port, ssl=use_ssl)
         if self.protocol:
             self.protocol.close()
 
         self.protocol = protocol
         protocol.client = self
 
+        logger.debug("Connected to: %r" % server_info)
 
-    async def rxer(self):
-        print("rxer starts")
-        while 1:
-            l = await self.reader.readline()
-            self.data_received(l.decode('utf-8'))
 
     def _send_request(self, method, params=[]):
         '''
@@ -60,7 +94,8 @@ class StratumClient:
             rv = asyncio.Queue()
             self.subscriptions[req_id] = (msg, rv)
         else:
-            rv = self.loop.create_future()
+            #rv = self.loop.create_future()
+            rv = asyncio.Future(loop=self.loop)
             self.inflight[req_id] = (msg, rv)
 
         # send it via what transport, which serializes it
@@ -77,7 +112,7 @@ class StratumClient:
 
         resp_id = msg.get('id', None)
         if resp_id is None:
-            self.transport.warn("Incoming server message had no ID in it", msg)
+            logger.error("Incoming server message had no ID in it", msg)
             return
 
         result = msg.get('result')
@@ -86,7 +121,8 @@ class StratumClient:
         if not inf:
             sub = self.subscriptions.get(resp_id)
 
-            # append to the queue of results
+            # Append to the queue of results for that
+            # subscription. likely to wake up a receiving
             sub.put(result)
     
             return
@@ -96,34 +132,25 @@ class StratumClient:
             return
 
         req, fut = inf
-        fut.done(resp)
+        fut.set_result(result)
 
         # forget about the request
         self.inflight.pop(resp_id, None)
 
-    def call(self, method, *args):
-        assert '.' in method
-        return self.conn._send_request(method, args)
+    def RPC(self, method, *params):
+        '''
+            Perform a remote command.
 
-    class Invokation(object):
-        def __init__(self, conn, here):
-            self.conn = conn
-            self.parts = [here]
-
-        def __getattr__(self, name):
-            self.parts.append(name)
-            return self
-
-        def __call__(self, **kws):
-            method = '.'.join(self.parts)
-            return self.conn._send_request(method, *args)
-
-        def __repr__(self):
-            return '.'.join(self.parts) + '(...)'
-
-    def XXX__getattr__(self, name):
+            Expects a method name, which look like:
+                server.peers.subscribe
+            .. and sometimes take arguments, all of which are positional.
     
-        return self.Invokation(self, name)
+            Returns a future for simple calls, and a asyncio.Queue
+            for subscriptions.
+        '''
+        assert '.' in method
+        #assert not method.endswith('subscribe')
+        return self._send_request(method, params)
         
 
 if __name__ == '__main__':
@@ -137,12 +164,12 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.set_debug(True)
 
-    proto_code = 't'
+    proto_code = 's'
 
-    if 0:
+    if 1:
         ks = KnownServers()
         ks.from_json('servers.json')
-        which = ks.select(proto_code, is_onion=False, min_prune=1000)[0]
+        which = ks.select(proto_code, is_onion=True, min_prune=1000)[0]
     else:
         which = ServerInfo({
             "seen_at": 1465686119.022801,
@@ -152,13 +179,12 @@ if __name__ == '__main__':
             "version": "1.0",
             "hostname": "erbium1.sytes.net" })
 
-    c = StratumClient(which, proto_code, loop=loop)
+    c = StratumClient(loop=loop)
 
-    fut = c.connect()
-
-    fut2 = c.call('server.peers.subscribe')
-
-    loop.run_until_complete(fut)
+    loop.run_until_complete(c.connect(which, proto_code, disable_cert_verify=True, use_tor=True))
+    
+    rv = loop.run_until_complete(c.RPC('server.peers.subscribe'))
+    print("DONE!: this server has %d peers" % len(rv))
     loop.close()
 
     #c.blockchain.address.get_balance(23)

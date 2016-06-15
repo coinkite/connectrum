@@ -10,7 +10,7 @@ class IrcListener(bottom.Client):
         self.my_nick = irc_nickname or 'XC%d' % random.randint(1E11, 1E12)
         self.password = irc_password or None
 
-        self.results = {}
+        self.results = {}       # by hostname
         self.servers = set()
         self.all_done = asyncio.Event()
 
@@ -55,25 +55,18 @@ class IrcListener(bottom.Client):
             await self.add_server(nick)
 
     async def got_who_reply(self, nick=None, real_name=None, **kws):
-        #logger.debug('who rep: %r' % kws)
+        '''
+            Server replied to one of our WHO requests, with details.
+        '''
+        #logger.debug('who reply: %r' % kws)
 
         nick = nick[2:] if nick[0:2] == 'E_' else nick
-        host, features = real_name.split(' ', 1)
+        host, ports = real_name.split(' ', 1)
 
         self.servers.remove(nick)
 
-        prune, version, ports = None, None, []
-        for p in features.split(' '):
-            if p[0] == 'v':
-                version = p[1:]
-            elif p[0] == 'p':
-                prune = int(p[1:])
-            else:
-                ports.append(p)
-
-        logger.debug("Found: '%s' at %s with ports %s" % (nick, host, ' '.join(ports)))
-        self.results[nick] = ServerInfo(nick, host, ' '.join(ports),
-                                                version=version, pruning_limit=prune)
+        logger.debug("Found: '%s' at %s with port list: %s",nick, host, ports)
+        self.results[host.lower()] = ServerInfo(nick, host, ports)
 
         if not self.servers:
             self.all_done.set()
@@ -136,7 +129,7 @@ if __name__ == '__main__':
     logging.getLogger('asyncio').setLevel(logging.DEBUG)
 
 
-    bot = IrcListener()
+    bot = IrcListener(ssl=False)
     bot.loop.set_debug(True)
     fut = bot.collect_data()
     #bot.loop.create_task(bot.connect())

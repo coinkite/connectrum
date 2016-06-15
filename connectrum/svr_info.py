@@ -11,16 +11,47 @@ class ServerInfo(dict):
     '''
     FIELDS = ['nickname', 'hostname', 'ports', 'version', 'pruning_limit', 'seen_at']
 
-    def __init__(self, nickname_or_dict, hostname=None, ports=None, version=None, pruning_limit=None):
+    def __init__(self, nickname_or_dict, hostname=None, ports=None,
+                        version=None, pruning_limit=None, ip_addr=None):
+
         if not hostname and not ports:
+            # promote a dict, or similar
             super(ServerInfo, self).__init__(nickname_or_dict)
-        else:
-            self['nickname'] = nickname_or_dict
-            self['hostname'] = hostname
-            self['ports'] = ports
-            self['version'] = version
-            self['pruning_limit'] = int(pruning_limit or 0)
-            self['seen_at'] = time.time()
+            return
+
+        self['nickname'] = nickname_or_dict or None
+        self['hostname'] = hostname
+        self['ip_addr'] = ip_addr or None
+
+        # for ports, take
+        # - a number (int), assumed to be TCP port, OR
+        # - a list of codes
+        # - a string to be split apart
+        # - keep version and pruning limit separate
+        #
+        if isinstance(ports, int):
+            ports = 't%d' % ports
+        elif ' ' in ports:
+            plist = []
+
+            for p in ports.split(' '):
+                if p[0] == 'v':
+                    version = p[1:]
+                elif p[0] == 'p':
+                    pruning_limit = int(p[1:])
+                else:
+                    plist.append(p)
+
+            ports = plist
+            
+        assert ports, "Must have at least one port/protocol"
+        assert not isinstance(ports, str), "Ports is a list of strings"
+
+        self['ports'] = ports
+        self['version'] = version
+        self['pruning_limit'] = int(pruning_limit or 0)
+
+        self['seen_at'] = time.time()
 
     @classmethod
     def from_dict(cls, d):
@@ -31,9 +62,10 @@ class ServerInfo(dict):
         rv.update(d)
         return rv
 
+
     @property
     def protocols(self):
-        rv = set(i[0] for i in self['ports'].split())
+        rv = set(self['ports'])
         assert 'p' not in rv, 'pruning limit got in there'
         assert 'v' not in rv, 'version got in there'
         return rv
@@ -49,7 +81,7 @@ class ServerInfo(dict):
         '''
         assert len(for_protocol) == 1, "expect single letter code"
 
-        rv = [i[0] for i in self['ports'].split() if i[0] == for_protocol]
+        rv = [i[0] for i in self['ports'] if i[0] == for_protocol]
         if not rv:
             return None
 
@@ -87,7 +119,7 @@ class KnownServers(dict):
         with open(fname, 'rt') as fp:
             for row in json.load(fp):
                 nn = ServerInfo.from_dict(row)
-                self[nn['nickname']] = nn
+                self[nn['hostname'].lower()] = nn
 
     def from_irc(self, irc_nickname=None, irc_password=None):
         '''
@@ -114,10 +146,26 @@ class KnownServers(dict):
             or Electrum protocol/port number specification with spaces in between.
         '''
         nickname = nickname or hostname
-        if isinstance(ports, int):
-            ports = 't%d' % ports
 
-        self[nickname] = ServerInfo(nickname, hostname, ports, **kws)
+        self[hostname] = ServerInfo(nickname, hostname, ports, **kws)
+
+    def add_peer_response(cls, response_list):
+        # Update with response from Stratum (lacks the nickname value tho):
+        #
+        #      "91.63.237.12",
+        #      "electrum3.hachre.de",
+        #      [ "v1.0", "p10000", "t", "s" ]
+        #
+        for parms in response_list:
+            ip_addr, hostname, ports = params
+
+            if ip_addr == hostname:
+                ip_addr = None
+
+            g = self.get(hostname.lower())
+            nickname = g['nickname'] if g else None
+
+            self[hostname] = ServerInfo(nickname, host, ports, ip_addr=ip_addr)
 
     def save_json(self, fname='servers.json'):
         '''

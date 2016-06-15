@@ -14,7 +14,7 @@ class StratumProtocol(asyncio.Protocol):
 
     def connection_made(self, transport):
         self.transport = transport
-        logger.info("Connected ok")
+        logger.debug("Transport connected ok")
 
     def connection_lost(self, exc):
         if not self.closed:
@@ -26,7 +26,7 @@ class StratumProtocol(asyncio.Protocol):
         self.buf += data
 
         # Unframe the mesage. Expecting JSON.
-        *lines, self.buf = self.buf.split('\n')
+        *lines, self.buf = self.buf.split(b'\n')
 
         for line in lines:
             if not line: continue
@@ -38,16 +38,16 @@ class StratumProtocol(asyncio.Protocol):
                 continue
 
             try:
-                msg = json.loads(body)
+                msg = json.loads(msg)
             except ValueError:
                 logger.exception("Bad JSON received from server", msg)
                 continue
 
-            logger.debug("RX:\n%s", dumps(msg, indent=2))
+            #logger.debug("RX:\n%s", json.dumps(msg, indent=2))
 
             try:
                 self.client._got_response(msg)
-            except Exceoption as e:
+            except Exception as e:
                 logger.exception("Trouble handling response! (%s)" % e)
                 continue
 
@@ -55,7 +55,7 @@ class StratumProtocol(asyncio.Protocol):
         '''
             Given an object, encode as JSON and transmit to the server.
         '''
-        logger.debug("TX:\n%s", dumps(message, indent=2))
+        #logger.debug("TX:\n%s", json.dumps(message, indent=2))
         data = json.dumps(message).encode('utf-8') + b'\n'
         self.transport.write(data)
 
