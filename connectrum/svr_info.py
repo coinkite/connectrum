@@ -31,7 +31,7 @@ class ServerInfo(dict):
         #
         if isinstance(ports, int):
             ports = ['t%d' % ports]
-        elif ' ' in ports:
+        elif isinstance(ports, str):
             ports = ports.split()
 
         # check we don't have junk in the ports list
@@ -140,7 +140,7 @@ class KnownServers(dict):
 
             Slow; takes 30+ seconds but authoritative and current.
         '''
-        from findall import IrcListener
+        from .findall import IrcListener
         
         # connect and fetch current set of servers who are
         # on #electrum channel at freenode

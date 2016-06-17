@@ -2,8 +2,8 @@
 #
 #
 import bottom, random, time, asyncio
-from utils import logger
-from svr_info import ServerInfo
+from .utils import logger
+from .svr_info import ServerInfo
 
 class IrcListener(bottom.Client):
     def __init__(self, irc_nickname=None, irc_password=None, ssl=True):
@@ -21,7 +21,7 @@ class IrcListener(bottom.Client):
         self.on('PING', self.keepalive)
         self.on('JOIN', self.joined)
         self.on('RPL_NAMREPLY', self.got_users)
-        self.on('WHOREPLY', self.got_who_reply)
+        self.on('RPL_WHOREPLY', self.got_who_reply)
         self.on("client_disconnect", self.reconnect)
         self.on('RPL_ENDOFNAMES', self.got_end_of_names)
 

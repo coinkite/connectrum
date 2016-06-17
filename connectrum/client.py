@@ -5,6 +5,8 @@ import json, warnings, asyncio, ssl
 from .protocol import StratumProtocol
 import aiosocks
 from .utils import logger
+from collections import defaultdict
+from .exc import ElectrumErrorResponse
 
 class StratumClient:
 
@@ -17,11 +19,35 @@ class StratumClient:
 
         self.next_id = 1
         self.inflight = {}
-        self.subscriptions = {}
+        self.subscriptions = defaultdict(list)
+
+        self.ka_task = None
 
         self.loop = loop or asyncio.get_event_loop()
 
         # next step: call connect()
+
+    def _connection_lost(self, protocol):
+        # Ignore connection_lost for old connections
+        if protocol is not self.protocol:
+            return
+
+        self.protocol = None
+        logger.warn("Electrum server connection lost")
+
+        # cleanup keep alive task
+        if self.ka_task:
+            self.ka_task.cancel()
+            self.ka_task = None
+
+    def close(self):
+        if self.protocol:
+            self.protocol.close()
+            self.protocol = None
+        if self.ka_task:
+            self.ka_task.cancel()
+            self.ka_task = None
+            
 
     async def connect(self, server_info, proto_code='s', *,
                             use_tor=False, disable_cert_verify=False,
@@ -80,10 +106,22 @@ class StratumClient:
         self.protocol = protocol
         protocol.client = self
 
+        self.ka_task = self.loop.create_task(self._keepalive())
+
         logger.debug("Connected to: %r" % server_info)
 
+    async def _keepalive(self):
+        '''
+            Keep our connect to server alive forever, with some 
+            pointless traffic.
+        '''
+        while self.protocol:
+            vers = await self.RPC('server.version')
+            logger.debug("Server version: " + vers)
+            await asyncio.sleep(600)
 
-    def _send_request(self, method, params=[]):
+
+    def _send_request(self, method, params=[], is_subscribe = False):
         '''
             Send a new request to the server. Serialized the JSON and
             tracks id numbers and optional callbacks.
@@ -96,18 +134,18 @@ class StratumClient:
         msg = {'id': req_id, 'method': method, 'params': params}
 
         # subscriptions are a Q, normal requests are a future
-        if 'subscribe' in 'method':
-            rv = asyncio.Queue()
-            self.subscriptions[req_id] = (msg, rv)
-        else:
-            #rv = self.loop.create_future()
-            rv = asyncio.Future(loop=self.loop)
-            self.inflight[req_id] = (msg, rv)
+        if is_subscribe:
+            waitQ = asyncio.Queue()
+            self.subscriptions[method].append(waitQ)
 
-        # send it via what transport, which serializes it
+        fut = asyncio.Future(loop=self.loop)
+
+        self.inflight[req_id] = (msg, fut)
+
+        # send it via the transport, which serializes it
         self.protocol.send_data(msg)
 
-        return rv
+        return fut if not is_subscribe else (fut, waitQ)
 
     def _got_response(self, msg):
         '''
@@ -116,32 +154,48 @@ class StratumClient:
             Has already been unframed and deserialized into an object.
         '''
 
+        #logger.debug("MSG: %r" % msg)
+
         resp_id = msg.get('id', None)
+
         if resp_id is None:
-            logger.error("Incoming server message had no ID in it", msg)
+            # subscription traffic comes with method set, but no req id.
+            method = msg.get('method', None)
+            if not method:
+                logger.error("Incoming server message had no ID nor method in it", msg)
+                return
+
+            # not obvious, but result is on params, not result, for subscriptions
+            result = msg.get('params', None)
+
+            logger.debug("Traffic on subscription: %s" % method)
+
+            subs = self.subscriptions.get(method)
+            for q in subs:
+                self.loop.create_task(q.put(result))
+
             return
 
+        assert 'method' not in msg
         result = msg.get('result')
 
-        inf = self.inflight.get(resp_id) 
+        # fetch and forget about the request
+        inf = self.inflight.pop(resp_id) 
         if not inf:
-            sub = self.subscriptions.get(resp_id)
-
-            # Append to the queue of results for that
-            # subscription. likely to wake up a receiving
-            sub.put(result)
-    
-            return
-
-        if inf is None:
             logger.error("Incoming server message had unknown ID in it: %s" % resp_id)
             return
 
-        req, fut = inf
-        fut.set_result(result)
+        # it's a future which is done now
+        req, rv = inf
 
-        # forget about the request
-        self.inflight.pop(resp_id, None)
+        if 'error' in msg:
+            err = msg['error']
+            
+            logger.info("Error response: '%s'" % err)
+            rv.set_exception(ElectrumErrorResponse(err, req))
+
+        else:
+            rv.set_result(result)
 
     def RPC(self, method, *params):
         '''
@@ -157,6 +211,21 @@ class StratumClient:
         assert '.' in method
         #assert not method.endswith('subscribe')
         return self._send_request(method, params)
+
+    def subscribe(self, method, *params):
+        '''
+            Perform a remote command.
+
+            Expects a method name, which look like:
+                server.peers.subscribe
+            .. and sometimes take arguments, all of which are positional.
+    
+            Returns a future for simple calls, and a asyncio.Queue
+            for subscriptions.
+        '''
+        assert '.' in method
+        assert method.endswith('subscribe')
+        return self._send_request(method, params, is_subscribe=True)
         
 
 if __name__ == '__main__':
