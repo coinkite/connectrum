@@ -1,6 +1,9 @@
 #! /usr/bin/env python3
 #
-# Provide and interactive command line for sending commands to an Electrum server.
+# Provide an interactive command line for sending
+# commands to an Electrum server.
+#
+# TODO: finish this with interactive readline
 #
 import sys, asyncio, argparse, json
 from connectrum.client import StratumClient
@@ -27,6 +30,8 @@ async def interact(conn, svr, connector, method, args, verbose=False):
         motd = await conn.RPC('server.banner')
         print("\n---\n%s\n---"  % motd)
 
+    # XXX TODO do a simple REPL here
+
     if method:
         print("\nMethod: %s" % method)
 
@@ -40,7 +45,6 @@ async def interact(conn, svr, connector, method, args, verbose=False):
         print(e)
 
     conn.close()
-    
 
 
 def main():
