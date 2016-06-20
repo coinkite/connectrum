@@ -51,13 +51,15 @@ class StratumClient:
 
     async def connect(self, server_info, proto_code='s', *,
                             use_tor=False, disable_cert_verify=False,
-                            proxy=None):
+                            proxy=None, short_term=False):
         '''
             Start connection process.
-            Destination must be specified in a ServerInfo() record.
+            Destination must be specified in a ServerInfo() record (first arg).
         '''
         self.server_info = server_info
         self.proto_code = proto_code
+
+        logger.debug("Connecting to: %r" % server_info)
 
         if proto_code == 'g':       # websocket
             # to do this, we'll need a websockets implementation that
@@ -68,15 +70,20 @@ class StratumClient:
         hostname, port, use_ssl = server_info.get_port(proto_code)
 
         if use_tor:
-            # connect via Tor proxy proxy, assumed to be on localhost:9050
+            # Connect via Tor proxy proxy, assumed to be on localhost:9050
+            # unless a tuple is given with another host/port combo.
             try:
                 socks_host, socks_port = use_tor
             except TypeError:
                 socks_host, socks_port = 'localhost', 9150
 
+            # basically no-one has .onion SSL certificates, and
+            # pointless anyway.
             disable_cert_verify = True
 
             assert not proxy, "Sorry not yet supporting proxy->tor->dest"
+
+            logger.debug(" .. using TOR")
 
             proxy = aiosocks.Socks5Addr(socks_host, int(socks_port))
 
@@ -88,6 +95,8 @@ class StratumClient:
             use_ssl = ssl.create_default_context()
             use_ssl.check_hostname = False
             use_ssl.verify_mode = ssl.CERT_NONE
+
+            logger.debug(" .. SSL cert check disabled")
 
         if proxy:
             transport, protocol = await aiosocks.create_connection(
@@ -106,7 +115,8 @@ class StratumClient:
         self.protocol = protocol
         protocol.client = self
 
-        self.ka_task = self.loop.create_task(self._keepalive())
+        if not short_term:
+            self.ka_task = self.loop.create_task(self._keepalive())
 
         logger.debug("Connected to: %r" % server_info)
 
@@ -202,11 +212,13 @@ class StratumClient:
             Perform a remote command.
 
             Expects a method name, which look like:
-                server.peers.subscribe
+
+                blockchain.address.get_balance
+
             .. and sometimes take arguments, all of which are positional.
     
-            Returns a future for simple calls, and a asyncio.Queue
-            for subscriptions.
+            Returns a future which will you should await for
+            the result from the server. Failures are returned as exceptions.
         '''
         assert '.' in method
         #assert not method.endswith('subscribe')
@@ -214,14 +226,16 @@ class StratumClient:
 
     def subscribe(self, method, *params):
         '''
-            Perform a remote command.
+            Perform a remote command which will stream events/data to us.
 
             Expects a method name, which look like:
                 server.peers.subscribe
             .. and sometimes take arguments, all of which are positional.
     
-            Returns a future for simple calls, and a asyncio.Queue
-            for subscriptions.
+            Returns a tuple: (Future, asyncio.Queue).
+            The future will have the result of the initial
+            call, and the queue will receive additional
+            responses as they happen.
         '''
         assert '.' in method
         assert method.endswith('subscribe')
