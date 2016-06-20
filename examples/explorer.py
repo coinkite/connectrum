@@ -1,11 +1,19 @@
 #
 # Be a simple bitcoin block explorer. Just an toy example!
 #
+# Limitations:
+# - picks a random Electrum server each time it starts (which is a crapshoot)
+# - displays nothing interesting for txn
+# - does not do block hash numbers, only by height
+# - inline html is terrible
+# - ugly
+#
 import re, aiohttp, json, textwrap
 from aiohttp import web
 from aiohttp.web import HTTPFound, Response
 from connectrum.client import StratumClient
-from connectrum.svr_info import KnownServers
+from connectrum.svr_info import KnownServers, ServerInfo
+from connectrum import ElectrumErrorResponse
 
 top_blk = 6666
 
@@ -15,7 +23,7 @@ HTML_HDR = '''
         body { margin: 20px; }
     </style>
     <body>
-    <h1>Explore Bitcoin</h1>
+    <a href="/"><h1>Explore Bitcoin</h1></a>
 '''
 
 def linkage(n, label=None):
@@ -53,6 +61,37 @@ async def homepage(request):
 
     return Response(content_type='text/html', text=t)
 
+async def call_and_format(conn, method, *args):
+    # call a method and format up the response nicely
+
+    t = ''
+    try:
+        resp = await conn.RPC(method, *args)
+    except ElectrumErrorResponse as e:
+        response, req = e.args
+        t += "<h3>Server Error</h3><pre>%s\n%s</pre>" % (response, req)
+        return t
+
+    if isinstance(resp, str):
+        here = '\n'.join(textwrap.wrap(resp))
+    else:
+        here = json.dumps(resp, indent=2)
+
+    # simulate <pre> somewhat
+    here = here.replace('\n', '<br/>')
+    here = here.replace('<br/> ', '<br/>&nbsp;')
+
+    # link to txn
+    here = re.sub(r'"([a-f0-9]{64})"', lambda m: linkage(m.group(1)), here)
+    # TODO: link to blk numbers
+    
+
+    t += '<h3><tt>%s</tt></h3><code>' % method
+    t += here
+    t += '</code>'
+
+    return t
+
 async def search(request):
     query = (await request.post())['q'].strip()
 
@@ -72,6 +111,7 @@ async def search(request):
 
 
 async def address_page(request):
+    # address summary by bitcoin payment addr
     addr = request.match_info['addr']
     conn = request.app['conn']
 
@@ -83,44 +123,33 @@ async def address_page(request):
                     'blockchain.address.get_proof',
                     'blockchain.address.listunspent']:
         # get a balance, etc.
-        resp = await conn.RPC(method, addr)
-        t += '<h3><tt>%s</tt></h3><pre>%s</pre>' % (method, json.dumps(resp, indent=2))
+        t += await call_and_format(conn, method, addr)
     
     return Response(content_type='text/html', text=t)
 
 async def transaction_page(request):
+    # transaction by hash
     txn_hash = request.match_info['txn_hash']
     conn = request.app['conn']
 
     t = HTML_HDR
     t += '<h2><code>%s</code></h2>' % txn_hash
 
-    for method in ['blockchain.transaction.get', 'blockchain.transaction.get_merkle']:
-        resp = await conn.RPC(method, txn_hash)
-        t += '<h3><tt>%s</tt></h3><pre>' % method
-        if isinstance(resp, str):
-            t += '\n'.join(textwrap.wrap(resp))
-        else:
-            t += json.dumps(resp, indent=2)
-        t += '</pre>'
+    for method in ['blockchain.transaction.get']:
+        t += await call_and_format(conn, method, txn_hash)
     
     return Response(content_type='text/html', text=t)
     
 async def block_page(request):
-    height = int(request.match_info['height'])
+    # blocks by number (height)
+    height = int(request.match_info['height'], 10)
     conn = request.app['conn']
 
     t = HTML_HDR
     t += '<h2>Block %d</h2>' % height
 
     for method in ['blockchain.block.get_header']:
-        resp = await conn.RPC(method, height)
-        t += '<h3><tt>%s</tt></h3><pre>' % method
-        if isinstance(resp, str):
-            t += '\n'.join(textwrap.wrap(resp))
-        else:
-            t += json.dumps(resp, indent=2)
-        t += '</pre>'
+        t += await call_and_format(conn, method, height)
 
     t += '<hr/><p>%s &nbsp;&nbsp; %s</p>' % (linkage(height-1, "PREV"), linkage(height+1, "NEXT"))
     
@@ -129,7 +158,7 @@ async def block_page(request):
 async def startup_code(app):
     # pick a random server
     app['conn'] = conn = StratumClient()
-    await conn.connect(servers[0], disable_cert_verify=True)
+    await conn.connect(el_server, disable_cert_verify=True)
 
     # track top block
     async def track_top_block():
@@ -151,11 +180,15 @@ if __name__ == "__main__":
     app.router.add_route('GET', '/txn/{txn_hash}', transaction_page)
     app.router.add_route('GET', '/blk/{height}', block_page)
 
-    ks = KnownServers()
-    ks.from_json('../connectrum/servers.json')
-    servers = ks.select(is_onion=False, min_prune=1000)
+    if 1:
+        ks = KnownServers()
+        ks.from_json('../connectrum/servers.json')
+        servers = ks.select(is_onion=False, min_prune=1000)
 
-    assert servers, "Need some servers to talk to."
+        assert servers, "Need some servers to talk to."
+        el_server = servers[0]
+    else:
+        el_server = ServerInfo('hardcoded', 'electrum.vom-stausee.de', 's')
 
     app.loop.create_task(startup_code(app))
 
