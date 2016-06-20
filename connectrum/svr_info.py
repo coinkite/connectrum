@@ -8,6 +8,8 @@ from .constants import DEFAULT_PORTS
 class ServerInfo(dict):
     '''
         Information to be stored on a server. Based on IRC data that is published.
+
+        Based on a dictionary, which I regret now...
     '''
     FIELDS = ['nickname', 'hostname', 'ports', 'version', 'pruning_limit', 'seen_at']
 
@@ -23,11 +25,11 @@ class ServerInfo(dict):
         self['hostname'] = hostname
         self['ip_addr'] = ip_addr or None
 
-        # for ports, take
+        # For 'ports', take
         # - a number (int), assumed to be TCP port, OR
-        # - a list of codes
-        # - a string to be split apart
-        # - keep version and pruning limit separate
+        # - a list of codes, OR
+        # - a string to be split apart.
+        # Keep version and pruning limit separate
         #
         if isinstance(ports, int):
             ports = ['t%d' % ports]
@@ -76,6 +78,10 @@ class ServerInfo(dict):
     @property
     def pruning_limit(self):
         return self.get('pruning_limit', 100)
+
+    @property
+    def hostname(self):
+        return self.get('hostname')
 
     def get_port(self, for_protocol):
         '''
