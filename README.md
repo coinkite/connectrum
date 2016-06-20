@@ -1,4 +1,3 @@
-
 # Connectrum
 
 ## Stratum (electrum-server) Client Protocol library
@@ -17,8 +16,13 @@ already in the standard Electrum code and command line.
     virtualenv -p python3 ENV
     (activate ENV)
     pip install -r requirements.txt
+    cd examples
+    python3 explore.py
 
 
-## References
+## TODO List
 
-https://github.com/python/asyncio/wiki/ThirdParty
+- be more robust about failed servers, reconnect and handle it.
+- connect to a few (3?) servers and compare top block and response times; pick best
+- some sort of persistant server list that can be updated as we run
+- type checking of parameters sent to server (maybe)?
