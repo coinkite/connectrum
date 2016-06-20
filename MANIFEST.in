@@ -1,0 +1,4 @@
+include README.md
+include connectrum/servers.json
+recursive-exclude testing *
+recursive-exclude examples *
