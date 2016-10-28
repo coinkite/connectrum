@@ -67,10 +67,9 @@ class ServerInfo(dict):
         rv.update(d)
         return rv
 
-
     @property
     def protocols(self):
-        rv = set(self['ports'])
+        rv = {port[0] for port in self['ports']}
         assert 'p' not in rv, 'pruning limit got in there'
         assert 'v' not in rv, 'version got in there'
         return rv
@@ -105,7 +104,6 @@ class ServerInfo(dict):
         use_ssl = for_protocol in ('s', 'g')
 
         return self['hostname'], port, use_ssl
-        
 
     @property
     def is_onion(self):
