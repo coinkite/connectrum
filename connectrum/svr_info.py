@@ -162,8 +162,11 @@ class KnownServers(dict):
             Hostname is a FQDN and ports is either a single int (assumed to be TCP port)
             or Electrum protocol/port number specification with spaces in between.
         '''
-        nickname = nickname or hostname
+        if isinstance(hostname, ServerInfo):
+            self[str(hostname)] = hostname
+            return
 
+        nickname = nickname or hostname
         self[hostname.lower()] = ServerInfo(nickname, hostname, ports, **kws)
 
     def add_peer_response(self, response_list):
