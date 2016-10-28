@@ -35,6 +35,8 @@ class ServerInfo(dict):
             ports = ['t%d' % ports]
         elif isinstance(ports, str):
             ports = ports.split()
+        elif ports is None:
+            ports = DEFAULT_PORTS.copy()
 
         # check we don't have junk in the ports list
         for p in ports.copy():
@@ -157,7 +159,7 @@ class KnownServers(dict):
         # merge by nick name
         self.update(results)
 
-    def add_single(self, hostname, ports, nickname=None, **kws):
+    def add_single(self, hostname, ports=None, nickname=None, **kws):
         '''
             Explicitly add a single entry.
             Hostname is a FQDN and ports is either a single int (assumed to be TCP port)
