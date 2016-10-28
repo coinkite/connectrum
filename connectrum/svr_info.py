@@ -117,6 +117,7 @@ class ServerInfo(dict):
         # used as a dict key in a few places.
         return self['hostname'].lower()
 
+
 class KnownServers(dict):
     '''
         Store a list of known servers and their port numbers, etc.
@@ -145,7 +146,7 @@ class KnownServers(dict):
             Slow; takes 30+ seconds but authoritative and current.
         '''
         from .findall import IrcListener
-        
+
         # connect and fetch current set of servers who are
         # on #electrum channel at freenode
 
@@ -211,18 +212,17 @@ class KnownServers(dict):
 
             Filter by TOR support, and pruning level.
         '''
-        lst = [i for i in self.values() 
-                            if (protocol in i.protocols)
-                                and (i.is_onion == is_onion if is_onion is not None else True)
-                                and (i.pruning_limit >= min_prune) ]
+        lst = [i for i in self.values()
+               if (protocol in i.protocols)
+                   and (i.is_onion == is_onion if is_onion is not None else True)
+                   and (i.pruning_limit >= min_prune)]
 
         random.shuffle(lst)
 
         return lst
-        
+
 
 if __name__ == '__main__':
-
     ks = KnownServers()
 
     #ks.from_json('servers.json')
