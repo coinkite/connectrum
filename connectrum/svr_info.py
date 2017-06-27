@@ -35,8 +35,6 @@ class ServerInfo(dict):
             ports = ['t%d' % ports]
         elif isinstance(ports, str):
             ports = ports.split()
-        elif ports is None:
-            ports = DEFAULT_PORTS.copy()
 
         # check we don't have junk in the ports list
         for p in ports.copy():
@@ -52,7 +50,6 @@ class ServerInfo(dict):
                 ports.remove(p)
 
         assert ports, "Must have at least one port/protocol"
-        assert not isinstance(ports, str), "Ports is a list of strings"
 
         self['ports'] = ports
         self['version'] = version
@@ -69,9 +66,10 @@ class ServerInfo(dict):
         rv.update(d)
         return rv
 
+
     @property
     def protocols(self):
-        rv = {port[0] for port in self['ports']}
+        rv = set(self['ports'])
         assert 'p' not in rv, 'pruning limit got in there'
         assert 'v' not in rv, 'version got in there'
         return rv
@@ -92,8 +90,6 @@ class ServerInfo(dict):
         assert len(for_protocol) == 1, "expect single letter code"
 
         rv = [i[0] for i in self['ports'] if i[0] == for_protocol]
-        if not rv:
-            return None
 
         port = None
         if len(rv) >= 2:
@@ -118,7 +114,6 @@ class ServerInfo(dict):
     def __str__(self):
         # used as a dict key in a few places.
         return self['hostname'].lower()
-
 
 class KnownServers(dict):
     '''
@@ -159,17 +154,14 @@ class KnownServers(dict):
         # merge by nick name
         self.update(results)
 
-    def add_single(self, hostname, ports=None, nickname=None, **kws):
+    def add_single(self, hostname, ports, nickname=None, **kws):
         '''
             Explicitly add a single entry.
             Hostname is a FQDN and ports is either a single int (assumed to be TCP port)
             or Electrum protocol/port number specification with spaces in between.
         '''
-        if isinstance(hostname, ServerInfo):
-            self[str(hostname)] = hostname
-            return
-
         nickname = nickname or hostname
+
         self[hostname.lower()] = ServerInfo(nickname, hostname, ports, **kws)
 
     def add_peer_response(self, response_list):
@@ -214,10 +206,10 @@ class KnownServers(dict):
 
             Filter by TOR support, and pruning level.
         '''
-        lst = [i for i in self.values()
-               if (protocol in i.protocols)
-                   and (i.is_onion == is_onion if is_onion is not None else True)
-                   and (i.pruning_limit >= min_prune)]
+        lst = [i for i in self.values() 
+                            if (protocol in i.protocols)
+                                and (i.is_onion == is_onion if is_onion is not None else True)
+                                and (i.pruning_limit >= min_prune) ]
 
         random.shuffle(lst)
 
@@ -225,6 +217,7 @@ class KnownServers(dict):
 
 
 if __name__ == '__main__':
+
     ks = KnownServers()
 
     #ks.from_json('servers.json')
