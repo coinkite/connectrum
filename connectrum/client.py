@@ -49,7 +49,7 @@ class StratumClient:
             self.ka_task = None
             
 
-    async def connect(self, server_info, proto_code='s', *,
+    async def connect(self, server_info, proto_code=None, *,
                             use_tor=False, disable_cert_verify=False,
                             proxy=None, short_term=False):
         '''
@@ -57,6 +57,8 @@ class StratumClient:
             Destination must be specified in a ServerInfo() record (first arg).
         '''
         self.server_info = server_info
+        if not proto_code:
+             proto_code,*_ = server_info.protocols
         self.proto_code = proto_code
 
         logger.debug("Connecting to: %r" % server_info)
