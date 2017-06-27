@@ -119,6 +119,7 @@ async def address_page(request):
     t += '<h1><code>%s</code></h1>' % addr
 
     for method in ['blockchain.address.get_balance',
+                    'blockchain.address.get_status',
                     'blockchain.address.get_mempool',
                     'blockchain.address.get_proof',
                     'blockchain.address.listunspent']:
