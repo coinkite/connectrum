@@ -1,6 +1,16 @@
 #
 # Store information about servers. Filter and select based on their protocol support, etc.
 #
+
+# Runtime check for optional modules
+from importlib import util as importutil
+
+# Check if bottom is present.
+if importutil.find_spec("bottom") is not None:
+    have_bottom = True
+else:
+    have_bottom = False
+
 import time, random, json
 from .constants import DEFAULT_PORTS
 
@@ -142,17 +152,20 @@ class KnownServers(dict):
 
             Slow; takes 30+ seconds but authoritative and current.
         '''
-        from .findall import IrcListener
+        if have_bottom:
+            from .findall import IrcListener
 
-        # connect and fetch current set of servers who are
-        # on #electrum channel at freenode
+            # connect and fetch current set of servers who are
+            # on #electrum channel at freenode
 
-        bot = IrcListener(irc_nickname=irc_nickname, irc_password=irc_password)
-        results = bot.loop.run_until_complete(bot.collect_data())
-        bot.loop.close()
+            bot = IrcListener(irc_nickname=irc_nickname, irc_password=irc_password)
+            results = bot.loop.run_until_complete(bot.collect_data())
+            bot.loop.close()
 
-        # merge by nick name
-        self.update(results)
+            # merge by nick name
+            self.update(results)
+        else:
+            return(False)
 
     def add_single(self, hostname, ports, nickname=None, **kws):
         '''
