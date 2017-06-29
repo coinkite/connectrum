@@ -1,9 +1,19 @@
 #
 # Client connect to an Electrum server.
 #
+
+# Runtime check for optional modules
+from importlib import util as importutil
 import json, warnings, asyncio, ssl
 from .protocol import StratumProtocol
-import aiosocks
+
+# Check if aiosocks is present, and load it if it is.
+if importutil.find_spec("aiosocks") is not None:
+    import aiosocks
+    have_aiosocks = True
+else:
+    have_aiosocks = False
+
 from .utils import logger
 from collections import defaultdict
 from .exc import ElectrumErrorResponse
@@ -72,22 +82,25 @@ class StratumClient:
         hostname, port, use_ssl = server_info.get_port(proto_code)
 
         if use_tor:
-            # Connect via Tor proxy proxy, assumed to be on localhost:9050
-            # unless a tuple is given with another host/port combo.
-            try:
-                socks_host, socks_port = use_tor
-            except TypeError:
-                socks_host, socks_port = 'localhost', 9150
+            if have_aiosocks:
+                # Connect via Tor proxy proxy, assumed to be on localhost:9050
+                # unless a tuple is given with another host/port combo.
+                try:
+                    socks_host, socks_port = use_tor
+                except TypeError:
+                    socks_host, socks_port = 'localhost', 9150
 
-            # basically no-one has .onion SSL certificates, and
-            # pointless anyway.
-            disable_cert_verify = True
+                # basically no-one has .onion SSL certificates, and
+                # pointless anyway.
+                disable_cert_verify = True
 
-            assert not proxy, "Sorry not yet supporting proxy->tor->dest"
+                assert not proxy, "Sorry not yet supporting proxy->tor->dest"
 
-            logger.debug(" .. using TOR")
+                logger.debug(" .. using TOR")
 
-            proxy = aiosocks.Socks5Addr(socks_host, int(socks_port))
+                proxy = aiosocks.Socks5Addr(socks_host, int(socks_port))
+            else:
+                logger.debug("Error: want to use tor, but no aiosocks module.")
 
         if use_ssl == True and disable_cert_verify:
             # Create a more liberal SSL context that won't
@@ -101,12 +114,14 @@ class StratumClient:
             logger.debug(" .. SSL cert check disabled")
 
         if proxy:
-            transport, protocol = await aiosocks.create_connection(
-                                    StratumProtocol, proxy=proxy,
-                                    proxy_auth=None,
-                                    remote_resolve=True, ssl=use_ssl,
-                                    dst=(hostname, port))
-            
+            if have_aiosocks:
+                transport, protocol = await aiosocks.create_connection(
+                                        StratumProtocol, proxy=proxy,
+                                        proxy_auth=None,
+                                        remote_resolve=True, ssl=use_ssl,
+                                        dst=(hostname, port))
+            else:
+                logger.debug("Error: want to use proxy, but no aiosocks module.")
         else:
             transport, protocol = await self.loop.create_connection(
                                                     StratumProtocol, host=hostname,
