@@ -33,6 +33,13 @@ In `examples` you will find a number little example programs.
 - `explorer.py` implements a simplistic block explorer website
 - `spider.py` find all Electrum servers recursively, read/write results to JSON
 
+Version History
+===============
+
+- **0.5.2** Make aiosocks and bottom modules optional at runtime (thanks to @BioMike)
+- **0.5.1** Minor bug fixes
+- **0.5.0** First public release.
+
 
 TODO List
 =========
