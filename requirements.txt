@@ -1,2 +1,1 @@
-# for examples/explore.py
-aiohttp
+# no required packages, but see optional_requirements to enable more features

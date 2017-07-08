@@ -13,14 +13,16 @@ def get_version():
                 return eval(line.split("=")[-1])
 
 REQUIREMENTS = [
-    'aiosocks',
-    'bottom>=1.0.2'
+    # none at this time
 ]
 
 TEST_REQUIREMENTS = [
     'aiohttp',
     'pytest',
     'tox',
+    'aiosocks',
+    'aiohttp',
+    'bottom>=1.0.2'
 ]
 
 if __name__ == "__main__":
