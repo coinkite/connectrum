@@ -88,7 +88,7 @@ class StratumClient:
                 try:
                     socks_host, socks_port = use_tor
                 except TypeError:
-                    socks_host, socks_port = 'localhost', 9150
+                    socks_host, socks_port = 'localhost', 9050
 
                 # basically no-one has .onion SSL certificates, and
                 # pointless anyway.
