@@ -1,4 +1,17 @@
-""" Setup file """
+"""
+Setup file
+
+See https://packaging.python.org/tutorials/distributing-packages/
+
+But basically:
+    python3 setup.py sdist
+    (that makes a new tgz in ./dist)
+    gpg --detach-sign -a dist/connectrum-XXX.tar.gz
+    twine upload dist/connectrum-XXX.*
+    git tag vXXXX -a "New release"
+    git push --tags
+
+"""
 import os
 from setuptools import setup, find_packages
 
