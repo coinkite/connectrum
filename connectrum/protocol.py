@@ -3,7 +3,10 @@
 #
 #
 import asyncio, json
-from .utils import logger
+import logging
+
+# Obtain the logger.
+logger = logging.getLogger(__name__)
 
 class StratumProtocol(asyncio.Protocol):
     client = None

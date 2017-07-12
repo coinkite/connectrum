@@ -56,7 +56,6 @@ def main():
 
     if args.debug:
         import logging
-        logging.getLogger('connectrum').setLevel(logging.DEBUG)
 
     # convert to our datastruct about servers.
     svr = ServerInfo(args.server, args.server,

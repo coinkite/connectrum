@@ -69,7 +69,6 @@ if __name__ == '__main__':
 
     if args.debug:
         import logging
-        logging.getLogger('connectrum').setLevel(logging.DEBUG)
 
     if args.irc:
         print("Connecting to freenode #electrum... (slow, be patient)")
