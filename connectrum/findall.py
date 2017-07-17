@@ -5,7 +5,6 @@ import bottom, random, time, asyncio
 from .svr_info import ServerInfo
 import logging
 
-# Obtain the logger.
 logger = logging.getLogger(__name__)
 
 class IrcListener(bottom.Client):

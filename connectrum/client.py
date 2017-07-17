@@ -18,7 +18,6 @@ from collections import defaultdict
 from .exc import ElectrumErrorResponse
 import logging
 
-# Obtain the logger.
 logger = logging.getLogger(__name__)
 
 class StratumClient:
@@ -266,10 +265,7 @@ if __name__ == '__main__':
     from transport import SocketTransport
     from svr_info import KnownServers, ServerInfo
 
-    #import logging
     logging.basicConfig(format="%(asctime)-11s %(message)s", datefmt="[%d/%m/%Y-%H:%M:%S]")
-    #logging.getLogger('connectrum').setLevel(logging.DEBUG)
-    #logging.getLogger('asyncio').setLevel(logging.DEBUG)
 
     loop = asyncio.get_event_loop()
     loop.set_debug(True)

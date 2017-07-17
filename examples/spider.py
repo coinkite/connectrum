@@ -62,13 +62,8 @@ if __name__ == '__main__':
                         help='File to save resulting server list into (JSON)')
     parser.add_argument('--timeout', default=30, type=int,
                         help='Total time to take (overall)')
-    parser.add_argument('--debug', default=False, action="store_true",
-                        help='Enable debug output from connectrum library')
 
     args = parser.parse_args()
-
-    if args.debug:
-        import logging
 
     if args.irc:
         print("Connecting to freenode #electrum... (slow, be patient)")
