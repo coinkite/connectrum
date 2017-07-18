@@ -14,9 +14,11 @@ if importutil.find_spec("aiosocks") is not None:
 else:
     have_aiosocks = False
 
-from .utils import logger
 from collections import defaultdict
 from .exc import ElectrumErrorResponse
+import logging
+
+logger = logging.getLogger(__name__)
 
 class StratumClient:
 
@@ -263,9 +265,7 @@ if __name__ == '__main__':
     from transport import SocketTransport
     from svr_info import KnownServers, ServerInfo
 
-    import logging
-    logging.getLogger('connectrum').setLevel(logging.DEBUG)
-    #logging.getLogger('asyncio').setLevel(logging.DEBUG)
+    logging.basicConfig(format="%(asctime)-11s %(message)s", datefmt="[%d/%m/%Y-%H:%M:%S]")
 
     loop = asyncio.get_event_loop()
     loop.set_debug(True)

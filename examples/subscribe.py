@@ -49,14 +49,8 @@ def main():
                         help='Port number to override default for protocol')
     parser.add_argument('--tor', default=False, action="store_true",
                         help='Use local Tor proxy to connect')
-    parser.add_argument('--debug', default=False, action="store_true",
-                        help='Enable debug output from connectrum library')
 
     args = parser.parse_args()
-
-    if args.debug:
-        import logging
-        logging.getLogger('connectrum').setLevel(logging.DEBUG)
 
     # convert to our datastruct about servers.
     svr = ServerInfo(args.server, args.server,
