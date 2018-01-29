@@ -145,7 +145,7 @@ class StratumClient:
             pointless traffic.
         '''
         while self.protocol:
-            vers = await self.RPC('server.version')
+            vers = await self.RPC('server.version', "connectrum", "1.1")
             logger.debug("Server version: " + vers)
             await asyncio.sleep(600)
 
