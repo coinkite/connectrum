@@ -164,7 +164,7 @@ class StratumClient:
 
         # subscriptions are a Q, normal requests are a future
         if is_subscribe:
-            waitQ = asyncio.Queue()
+            waitQ = asyncio.Queue(loop=self.loop)
             self.subscriptions[method].append(waitQ)
 
         fut = asyncio.Future(loop=self.loop)
