@@ -120,7 +120,7 @@ class StratumClient:
                 transport, protocol = await aiosocks.create_connection(
                                         StratumProtocol, proxy=proxy,
                                         proxy_auth=None,
-                                        remote_resolve=True, ssl=use_ssl,
+                                        remote_resolve=True, loop=self.loop, ssl=use_ssl,
                                         dst=(hostname, port))
             else:
                 logger.debug("Error: want to use proxy, but no aiosocks module.")
@@ -145,7 +145,7 @@ class StratumClient:
             pointless traffic.
         '''
         while self.protocol:
-            vers = await self.RPC('server.version')
+            vers = await self.RPC('server.version', "connectrum", "1.1")
             logger.debug("Server version: " + vers)
             await asyncio.sleep(600)
 
@@ -164,7 +164,7 @@ class StratumClient:
 
         # subscriptions are a Q, normal requests are a future
         if is_subscribe:
-            waitQ = asyncio.Queue()
+            waitQ = asyncio.Queue(loop=self.loop)
             self.subscriptions[method].append(waitQ)
 
         fut = asyncio.Future(loop=self.loop)
