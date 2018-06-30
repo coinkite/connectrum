@@ -99,7 +99,7 @@ class ServerInfo(dict):
         '''
         assert len(for_protocol) == 1, "expect single letter code"
 
-        rv = [i[0] for i in self['ports'] if i[0] == for_protocol]
+        rv = next(i for i in self['ports'] if i[0] == for_protocol)
 
         port = None
         if len(rv) >= 2:
