@@ -146,7 +146,7 @@ class StratumClient:
         '''
         while self.protocol:
             vers = await self.RPC('server.version')
-            logger.debug("Server version: " + vers)
+            logger.debug("Server version: " + repr(vers))
             await asyncio.sleep(600)
 
 
