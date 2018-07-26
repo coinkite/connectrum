@@ -99,6 +99,10 @@ class ServerInfo(dict):
         '''
         assert len(for_protocol) == 1, "expect single letter code"
 
+        use_ssl = for_protocol in ('s', 'g')
+
+        if 'port' in self: return self['hostname'], int(self['port']), use_ssl
+
         rv = next(i for i in self['ports'] if i[0] == for_protocol)
 
         port = None
@@ -108,8 +112,6 @@ class ServerInfo(dict):
             except:
                 pass
         port = port or DEFAULT_PORTS[for_protocol]
-
-        use_ssl = for_protocol in ('s', 'g')
 
         return self['hostname'], port, use_ssl
 
