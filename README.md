@@ -36,6 +36,7 @@ In `examples` you will find a number little example programs.
 Version History
 ===============
 
+- **0.7.0** Reconnect broken server connections automatically (after first connect).
 - **0.6.0** Various pull requests from other devs integrated. Thanks to @devrandom, @ysangkok!
 - **0.5.3** Documents the build/release process (no functional changes).
 - **0.5.2** Make aiosocks and bottom modules optional at runtime (thanks to @BioMike)
