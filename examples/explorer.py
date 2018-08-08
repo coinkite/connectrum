@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 #
 # Be a simple bitcoin block explorer. Just an toy example!
 #
@@ -8,7 +9,7 @@
 # - inline html is terrible
 # - ugly
 #
-import re, aiohttp, json, textwrap
+import re, aiohttp, json, textwrap, asyncio, sys
 from aiohttp import web
 from aiohttp.web import HTTPFound, Response
 from connectrum.client import StratumClient
@@ -52,7 +53,8 @@ async def homepage(request):
     t += '<pre style="font-size: 50%%">\n%s\n</pre><hr/>' % motd
 
     t += '<p>Donations: %s</p>' % linkage(donate)
-    t += '</p><p>Top block: %s</p>' % linkage(top_blk)
+    t += '</p><p>Top block: %s</p>' % linkage(top_blk['block_height'])
+
 
     t += '''
         <form method=POST action="/">
@@ -119,9 +121,9 @@ async def address_page(request):
     t += '<h1><code>%s</code></h1>' % addr
 
     for method in ['blockchain.address.get_balance',
-                    'blockchain.address.get_status',
+                    #'blockchain.address.get_status',
                     'blockchain.address.get_mempool',
-                    'blockchain.address.get_proof',
+                    #'blockchain.address.get_proof',
                     'blockchain.address.listunspent']:
         # get a balance, etc.
         t += await call_and_format(conn, method, addr)
@@ -159,12 +161,16 @@ async def block_page(request):
 async def startup_code(app):
     # pick a random server
     app['conn'] = conn = StratumClient()
-    await conn.connect(el_server, disable_cert_verify=True)
+    try:
+        await conn.connect(el_server, disable_cert_verify=True)
+    except Exception as exc:
+        print("unable to connect: %r" % exc)
+        sys.exit()
 
     # track top block
     async def track_top_block():
         global top_blk
-        fut, Q = conn.subscribe('blockchain.numblocks.subscribe')
+        fut, Q = conn.subscribe('blockchain.headers.subscribe')
         top_blk = await fut
         while 1:
             top_blk = max(await Q.get())
@@ -181,7 +187,7 @@ if __name__ == "__main__":
     app.router.add_route('GET', '/txn/{txn_hash}', transaction_page)
     app.router.add_route('GET', '/blk/{height}', block_page)
 
-    if 1:
+    if 0:
         ks = KnownServers()
         ks.from_json('../connectrum/servers.json')
         servers = ks.select(is_onion=False, min_prune=1000)
@@ -189,8 +195,10 @@ if __name__ == "__main__":
         assert servers, "Need some servers to talk to."
         el_server = servers[0]
     else:
-        el_server = ServerInfo('hardcoded', 'electrum.vom-stausee.de', 's')
+        el_server = ServerInfo('hardcoded', 'VPS.hsmiths.com', 's')
+        #el_server = ServerInfo('hardcoded', 'daedalus.bauerj.eu', 's')
 
-    app.loop.create_task(startup_code(app))
+    loop = asyncio.get_event_loop()
+    loop.create_task(startup_code(app))
 
     web.run_app(app)
