@@ -37,6 +37,8 @@ class StratumClient:
 
         self.loop = loop or asyncio.get_event_loop()
 
+        self.reconnect = None       # call connect() first
+
         # next step: call connect()
 
     def _connection_lost(self, protocol):
@@ -115,29 +117,38 @@ class StratumClient:
 
             logger.debug(" .. SSL cert check disabled")
 
-        if proxy:
-            if have_aiosocks:
-                transport, protocol = await aiosocks.create_connection(
-                                        StratumProtocol, proxy=proxy,
-                                        proxy_auth=None,
-                                        remote_resolve=True, ssl=use_ssl,
-                                        dst=(hostname, port))
+        async def _reconnect():
+            if self.protocol: return        # race/duplicate work
+
+            if proxy:
+                if have_aiosocks:
+                    transport, protocol = await aiosocks.create_connection(
+                                            StratumProtocol, proxy=proxy,
+                                            proxy_auth=None,
+                                            remote_resolve=True, ssl=use_ssl,
+                                            dst=(hostname, port))
+                else:
+                    logger.debug("Error: want to use proxy, but no aiosocks module.")
             else:
-                logger.debug("Error: want to use proxy, but no aiosocks module.")
-        else:
-            transport, protocol = await self.loop.create_connection(
-                                                    StratumProtocol, host=hostname,
-                                                    port=port, ssl=use_ssl)
+                transport, protocol = await self.loop.create_connection(
+                                                        StratumProtocol, host=hostname,
+                                                        port=port, ssl=use_ssl)
+
+            self.protocol = protocol
+            protocol.client = self
+
+            if not short_term:
+                self.ka_task = self.loop.create_task(self._keepalive())
+
+            logger.debug("Connected to: %r" % server_info)
+
+        # close whatever we had
         if self.protocol:
             self.protocol.close()
+            self.protocol = None
 
-        self.protocol = protocol
-        protocol.client = self
-
-        if not short_term:
-            self.ka_task = self.loop.create_task(self._keepalive())
-
-        logger.debug("Connected to: %r" % server_info)
+        self.reconnect = _reconnect
+        await self.reconnect()
 
     async def _keepalive(self):
         '''
@@ -147,6 +158,10 @@ class StratumClient:
         while self.protocol:
             vers = await self.RPC('server.version')
             logger.debug("Server version: " + repr(vers))
+
+            # Five minutes isn't really enough anymore; looks like
+            # servers are killing 2-minute old idle connections now.
+            # But decreasing interval this seems rude.
             await asyncio.sleep(600)
 
 
@@ -172,7 +187,17 @@ class StratumClient:
         self.inflight[req_id] = (msg, fut)
 
         # send it via the transport, which serializes it
-        self.protocol.send_data(msg)
+        if not self.protocol:
+            logger.debug("Need to reconnect to server")
+
+            async def connect_first():
+                await self.reconnect()
+                self.protocol.send_data(msg)
+
+            asyncio.create_task(connect_first())
+        else:
+            # typical case, send request immediatedly, response is a future
+            self.protocol.send_data(msg)
 
         return fut if not is_subscribe else (fut, waitQ)
 
@@ -272,7 +297,7 @@ if __name__ == '__main__':
 
     proto_code = 's'
 
-    if 1:
+    if 0:
         ks = KnownServers()
         ks.from_json('servers.json')
         which = ks.select(proto_code, is_onion=True, min_prune=1000)[0]
