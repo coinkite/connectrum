@@ -194,7 +194,7 @@ class StratumClient:
                 await self.reconnect()
                 self.protocol.send_data(msg)
 
-            asyncio.create_task(connect_first())
+            self.loop.create_task(connect_first())
         else:
             # typical case, send request immediatedly, response is a future
             self.protocol.send_data(msg)
