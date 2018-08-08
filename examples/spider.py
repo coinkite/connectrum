@@ -100,7 +100,7 @@ if __name__ == '__main__':
     else:
         print("%d servers connected and answered correctly" % len(connected))
 
-    if failed and args.debug:
+    if failed:
         print("%d FAILURES: " % len(failed))
         for i in failed:
             print('  %s' % i)
