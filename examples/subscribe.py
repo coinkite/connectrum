@@ -38,7 +38,7 @@ async def listen(conn, svr, connector, method, args, verbose=False):
 def main():
     parser = argparse.ArgumentParser(description='Subscribe to BTC events')
     parser.add_argument('method', 
-                        help='"blockchain.numblocks.subscribe" or similar')
+                        help='"blockchain.headers.subscribe" or similar')
     parser.add_argument('args', nargs="*", default=[],
                         help='Arguments for method')
     parser.add_argument('--server', default='cluelessperson.com',
