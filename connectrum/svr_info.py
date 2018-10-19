@@ -79,7 +79,7 @@ class ServerInfo(dict):
 
     @property
     def protocols(self):
-        rv = set(self['ports'])
+        rv = set(i[0] for i in self['ports'])
         assert 'p' not in rv, 'pruning limit got in there'
         assert 'v' not in rv, 'version got in there'
         return rv
@@ -215,7 +215,7 @@ class KnownServers(dict):
     def dump(self):
         return '\n'.join(repr(i) for i in self.values())
 
-    def select(self, protocol='s', is_onion=None, min_prune=1):
+    def select(self, protocol='s', is_onion=None, min_prune=0):
         '''
             Find all servers with indicated protocol support. Shuffled.
 
