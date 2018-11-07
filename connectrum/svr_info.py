@@ -17,11 +17,10 @@ from .constants import DEFAULT_PORTS
 
 class ServerInfo(dict):
     '''
-        Information to be stored on a server. Based on IRC data that is published.
+        Information to be stored on a server. Originally based on IRC data published to a channel.
 
-        Based on a dictionary, which I regret now...
     '''
-    FIELDS = ['nickname', 'hostname', 'ports', 'version', 'pruning_limit', 'seen_at']
+    FIELDS = ['nickname', 'hostname', 'ports', 'version', 'pruning_limit' ]
 
     def __init__(self, nickname_or_dict, hostname=None, ports=None,
                         version=None, pruning_limit=None, ip_addr=None):
@@ -65,7 +64,28 @@ class ServerInfo(dict):
         self['version'] = version
         self['pruning_limit'] = int(pruning_limit or 0)
 
-        self['seen_at'] = time.time()
+    @classmethod
+    def from_response(cls, response_list):
+        # Create a list of servers based on data from response from Stratum.
+        # Give this the response to: "server.peers.subscribe"
+        #
+        #     [...
+        #      "91.63.237.12",
+        #      "electrum3.hachre.de",
+        #      [ "v1.0", "p10000", "t", "s" ]
+        #       ...]
+        #
+        rv = []
+
+        for params in response_list:
+            ip_addr, hostname, ports = params
+
+            if ip_addr == hostname:
+                ip_addr = None
+
+            rv.append(ServerInfo(None, hostname, ports, ip_addr=ip_addr))
+
+        return rv
 
     @classmethod
     def from_dict(cls, d):
@@ -118,6 +138,12 @@ class ServerInfo(dict):
     @property
     def is_onion(self):
         return self['hostname'].lower().endswith('.onion')
+
+    def select(self, protocol='s', is_onion=None, min_prune=0):
+        # predicate function for selection based on features/properties
+        return (protocol in self.protocols)
+                and (self.is_onion == is_onion if is_onion is not None else True)
+                and (self.pruning_limit >= min_prune) ]
 
     def __repr__(self):
         return '<ServerInfo {hostname} nick={nickname} ports="{ports}" v={version} prune={pruning_limit}>'\
@@ -215,16 +241,13 @@ class KnownServers(dict):
     def dump(self):
         return '\n'.join(repr(i) for i in self.values())
 
-    def select(self, protocol='s', is_onion=None, min_prune=0):
+    def select(self, **kws):
         '''
             Find all servers with indicated protocol support. Shuffled.
 
             Filter by TOR support, and pruning level.
         '''
-        lst = [i for i in self.values() 
-                            if (protocol in i.protocols)
-                                and (i.is_onion == is_onion if is_onion is not None else True)
-                                and (i.pruning_limit >= min_prune) ]
+        lst = [i for i in self.values() if i.select(**kws)]
 
         random.shuffle(lst)
 
