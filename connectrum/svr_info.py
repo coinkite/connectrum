@@ -69,7 +69,7 @@ class ServerInfo(dict):
 
     @classmethod
     def from_dict(cls, d):
-        n = d.pop('nickname')
+        n = d.pop('nickname', None)
         h = d.pop('hostname')
         p = d.pop('ports')
         rv = cls(n, h, p)
