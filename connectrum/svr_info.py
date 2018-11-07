@@ -141,9 +141,9 @@ class ServerInfo(dict):
 
     def select(self, protocol='s', is_onion=None, min_prune=0):
         # predicate function for selection based on features/properties
-        return (protocol in self.protocols)
-                and (self.is_onion == is_onion if is_onion is not None else True)
-                and (self.pruning_limit >= min_prune) ]
+        return ((protocol in self.protocols)
+                    and (self.is_onion == is_onion if is_onion is not None else True)
+                    and (self.pruning_limit >= min_prune))
 
     def __repr__(self):
         return '<ServerInfo {hostname} nick={nickname} ports="{ports}" v={version} prune={pruning_limit}>'\
@@ -153,6 +153,10 @@ class ServerInfo(dict):
         # used as a dict key in a few places.
         return self['hostname'].lower()
 
+    def __hash__(self):
+        # this one-line allows use as a set member, which is really handy!
+        return hash(self['hostname'].lower())
+
 class KnownServers(dict):
     '''
         Store a list of known servers and their port numbers, etc.
@@ -161,8 +165,7 @@ class KnownServers(dict):
         - can read from a CSV for seeding/bootstrap
         - can read from IRC channel to find current hosts
 
-        We are a dictionary, with key being the hostname (in lowercase)
-        of the servers.
+        We are a dictionary, with key being the hostname (in lowercase) of the server.
     '''
 
     def from_json(self, fname):
@@ -179,6 +182,8 @@ class KnownServers(dict):
             Connect to the IRC channel and find all servers presently connected.
 
             Slow; takes 30+ seconds but authoritative and current.
+
+            OBSOLETE.
         '''
         if have_bottom:
             from .findall import IrcListener
