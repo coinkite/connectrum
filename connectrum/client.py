@@ -33,6 +33,8 @@ class StratumClient:
         self.inflight = {}
         self.subscriptions = defaultdict(list)
 
+        self.actual_connection = {}
+
         self.ka_task = None
 
         self.loop = loop or asyncio.get_event_loop()
@@ -136,6 +138,12 @@ class StratumClient:
 
             self.protocol = protocol
             protocol.client = self
+
+            # capture actual values used
+            self.actual_connection = dict(hostname=hostname, port=int(port),
+                                            ssl=bool(use_ssl), tor=bool(proxy))
+            self.actual_connection['ip_addr'] = transport.get_extra_info('peername',
+                                                        default=['unknown'])[0]
 
             if not short_term:
                 self.ka_task = self.loop.create_task(self._keepalive())

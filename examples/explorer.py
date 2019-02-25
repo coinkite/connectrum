@@ -162,10 +162,13 @@ async def startup_code(app):
     # pick a random server
     app['conn'] = conn = StratumClient()
     try:
-        await conn.connect(el_server, disable_cert_verify=True)
+        await conn.connect(el_server, disable_cert_verify=True,
+                                use_tor=('localhost', 9150) if el_server.is_onion else False)
     except Exception as exc:
         print("unable to connect: %r" % exc)
         sys.exit()
+
+    print("Connected to electrum server: {hostname}:{port} ssl={ssl} tor={tor} ip_addr={ip_addr}".format(**conn.actual_connection))
 
     # track top block
     async def track_top_block():
@@ -195,7 +198,7 @@ if __name__ == "__main__":
         assert servers, "Need some servers to talk to."
         el_server = servers[0]
     else:
-        el_server = ServerInfo('hardcoded', 'VPS.hsmiths.com', 's')
+        el_server = ServerInfo('hardcoded', sys.argv[-1], 's')
         #el_server = ServerInfo('hardcoded', 'daedalus.bauerj.eu', 's')
 
     loop = asyncio.get_event_loop()
