@@ -36,6 +36,8 @@ In `examples` you will find a number little example programs.
 Version History
 ===============
 
+- **0.7.4** Add `actual_connection` atrribute on `StratumClient` with some key details
+- **0.7.3** Not sure
 - **0.7.2** Bugfix: port numbers vs. protocols
 - **0.7.1** Python 2.6 compat fix
 - **0.7.0** Reconnect broken server connections automatically (after first connect).
