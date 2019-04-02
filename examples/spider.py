@@ -86,7 +86,7 @@ if __name__ == '__main__':
     if not args.tor:
         args.onion = False
 
-    candidates = ks.select(args.protocol, is_onion=args.onion)
+    candidates = ks.select(protocol=args.protocol, is_onion=args.onion)
     print("%d servers are right protocol" % len(candidates))
 
     all_done = asyncio.wait([probe(i, args.protocol, args.tor) for i in candidates],
