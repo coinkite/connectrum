@@ -20,7 +20,9 @@ async def interact(conn, svr, connector, method, args, verbose=False):
         print("Unable to connect to server: %s" % e)
         return -1
 
-    print("\nConnected to: %s\n" % svr)
+    print("\nConnected to: %s" % svr)
+    print("Server version: %s\n" % conn.server_version)
+    print("Server protocol: %s\n" % conn.protocol_version)
 
     if verbose:
         donate = await conn.RPC('server.donation_address')
@@ -73,7 +75,7 @@ def main():
     loop = asyncio.get_event_loop()  
 
     conn = StratumClient()
-    connector = conn.connect(svr, args.protocol, use_tor=svr.is_onion, disable_cert_verify=True)
+    connector = conn.connect(svr, args.protocol, use_tor=svr.is_onion, disable_cert_verify=True, short_term=True)
 
     loop.run_until_complete(interact(conn, svr, connector, args.method, args.args))
 

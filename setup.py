@@ -41,6 +41,7 @@ TEST_REQUIREMENTS = [
 if __name__ == "__main__":
     setup(
         name='connectrum',
+        python_requires='>=3.6.0',
         version=get_version(),
         description="asyncio-based Electrum client library",
         long_description=README,
@@ -51,7 +52,7 @@ if __name__ == "__main__":
             'Operating System :: OS Independent',
             'Programming Language :: Python',
             'Programming Language :: Python :: 3',
-            'Programming Language :: Python :: 3.5',
+            'Programming Language :: Python :: 3.6',
             'Topic :: Software Development :: Libraries',
         ],
         author='Peter Gray',

@@ -6,3 +6,7 @@ aiosocks>=0.1.5
 
 # for examples/explorer.py
 aiohttp
+
+# for some wrapping/backwards compat
+# - only required if you call obsolete method, and we need to rework it
+pycoin>=0.90.20200322

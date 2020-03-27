@@ -5,14 +5,10 @@ Stratum (electrum-server) Client Protocol library
 =================================================
 
 Uses python3 to be a client to the Electrum server network. It makes heavy use of
-`asyncio` module and newer Python 3.5 keywords such as `await` and `async`.
+`asyncio` module and newer Python 3 keywords such as `await` and `async`.
 
 For non-server applications, you can probably find all you need
 already in the standard Electrum code and command line.
-
-Python 3.5 is absolutely required for this code. It will never work
-on earlier versions of Python.
-
 
 Features
 ========
@@ -36,6 +32,7 @@ In `examples` you will find a number little example programs.
 Version History
 ===============
 
+- **0.8.0** Support for ElectrumX protocol 1.4 with some helpers to restore useful functions.
 - **0.7.4** Add `actual_connection` atrribute on `StratumClient` with some key details
 - **0.7.3** Not sure
 - **0.7.2** Bugfix: port numbers vs. protocols

@@ -33,6 +33,10 @@ class StratumClient:
         self.inflight = {}
         self.subscriptions = defaultdict(list)
 
+        # these are valid after connection
+        self.server_version = None          # 'ElectrumX 1.13.0' or similar
+        self.protocol_version = None        # float(1.4) or similar
+
         self.actual_connection = {}
 
         self.ka_task = None
@@ -147,6 +151,9 @@ class StratumClient:
 
             if not short_term:
                 self.ka_task = self.loop.create_task(self._keepalive())
+            else:
+                await self.get_server_version()
+                logger.debug(f"Server version/protocol: {self.server_version} / {self.protocol_version}")
 
             logger.debug("Connected to: %r" % server_info)
 
@@ -158,19 +165,25 @@ class StratumClient:
         self.reconnect = _reconnect
         await self.reconnect()
 
+    async def get_server_version(self):
+        # fetch version strings, save them
+        self.server_version, pv = await self.RPC('server.version')
+        self.protocol_version = float(pv)
+
     async def _keepalive(self):
         '''
             Keep our connect to server alive forever, with some 
             pointless traffic.
         '''
         while self.protocol:
-            vers = await self.RPC('server.version')
-            logger.debug("Server version: " + repr(vers))
+            await self.get_server_version()
+            logger.debug("Server version: " + repr(self.server_version))
 
             # Five minutes isn't really enough anymore; looks like
             # servers are killing 2-minute old idle connections now.
-            # But decreasing interval this seems rude.
-            await asyncio.sleep(600)
+            # But decreasing interval this seems rude... actually   
+            # much DDoS prevention in action now-a-days, so hard to workaround.
+            await asyncio.sleep(120)
 
 
     def _send_request(self, method, params=[], is_subscribe = False):
@@ -274,7 +287,28 @@ class StratumClient:
         '''
         assert '.' in method
         #assert not method.endswith('subscribe')
+
+        if method.startswith('blockchain.address.') and self.protocol_version >= 1.3:
+            # these methods have changed, but we can patch it.
+            method, params = self.patch_addr_methods(method, params)
+
         return self._send_request(method, params)
+
+    def patch_addr_methods(self, method, params):
+        # blockchain.address.get_balance(addr) => blockchain.scripthash.get_balance(sh)
+        from hashlib import sha256
+        from binascii import b2a_hex
+        try:
+            from pycoin.symbols.btc import network as BTC       # bitcoin only!
+        except ImportError:
+            raise RuntimeError("we can patch obsolete protocol msgs, but need pycoin>=0.90")
+
+        # convert from base58 into sha256(binary of script)?
+        addr = BTC.parse(params[0])
+        sh = sha256(addr.script()).digest()[::-1]
+
+        return method.replace('.address.', '.scripthash.'), \
+                    [str(b2a_hex(sh), 'ascii')]+list(params[1:])
 
     def subscribe(self, method, *params):
         '''
