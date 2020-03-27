@@ -18,6 +18,8 @@ Features
 - manage lists of Electrum servers in simple JSON files.
 - fully asynchronous design, so can connect to multiple at once
 - a number of nearly-useful examples provided
+- any  call to methods `blockchain.address.*` is converted into the more
+  modern equivilent `blockchain.scripthash.*` transparently. Requires pycoin module.
 
 Examples
 ========
@@ -32,6 +34,7 @@ In `examples` you will find a number little example programs.
 Version History
 ===============
 
+- **0.8.1** Handle protocol version reporting correctly, use 'ping' msg. (Says we are 1.4)
 - **0.8.0** Support for ElectrumX protocol 1.4 with some helpers to restore useful functions.
 - **0.7.4** Add `actual_connection` atrribute on `StratumClient` with some key details
 - **0.7.3** Not sure

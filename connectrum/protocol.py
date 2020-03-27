@@ -5,7 +5,7 @@
 import asyncio, json
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('connectrum')
 
 class StratumProtocol(asyncio.Protocol):
     client = None

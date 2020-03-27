@@ -7,7 +7,7 @@ from connectrum.client import StratumClient
 from connectrum.svr_info import ServerInfo
 
 
-async def listen(conn, svr, connector, method, args, verbose=False):
+async def listen(conn, svr, connector, method, args, verbose=0):
 
     try:
         await connector

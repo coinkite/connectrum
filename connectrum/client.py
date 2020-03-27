@@ -6,6 +6,7 @@
 from importlib import util as importutil
 import json, warnings, asyncio, ssl
 from .protocol import StratumProtocol
+from . import __version__
 
 # Check if aiosocks is present, and load it if it is.
 if importutil.find_spec("aiosocks") is not None:
@@ -18,9 +19,10 @@ from collections import defaultdict
 from .exc import ElectrumErrorResponse
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('connectrum')
 
 class StratumClient:
+
 
     def __init__(self, loop=None):
         '''
@@ -32,6 +34,9 @@ class StratumClient:
         self.next_id = 1
         self.inflight = {}
         self.subscriptions = defaultdict(list)
+
+        # report our version, honestly; and indicate we only understand 1.4
+        self.my_version_args = ('Connectrum/{__version__}}', '1.4')
 
         # these are valid after connection
         self.server_version = None          # 'ElectrumX 1.13.0' or similar
@@ -149,11 +154,12 @@ class StratumClient:
             self.actual_connection['ip_addr'] = transport.get_extra_info('peername',
                                                         default=['unknown'])[0]
 
+            # always report our version, and get server's version
+            await self.get_server_version()
+            logger.debug(f"Server version/protocol: {self.server_version} / {self.protocol_version}")
+
             if not short_term:
                 self.ka_task = self.loop.create_task(self._keepalive())
-            else:
-                await self.get_server_version()
-                logger.debug(f"Server version/protocol: {self.server_version} / {self.protocol_version}")
 
             logger.debug("Connected to: %r" % server_info)
 
@@ -167,7 +173,8 @@ class StratumClient:
 
     async def get_server_version(self):
         # fetch version strings, save them
-        self.server_version, pv = await self.RPC('server.version')
+        # - can only be done once in v1.4
+        self.server_version, pv = await self.RPC('server.version', *self.my_version_args)
         self.protocol_version = float(pv)
 
     async def _keepalive(self):
@@ -176,14 +183,11 @@ class StratumClient:
             pointless traffic.
         '''
         while self.protocol:
-            await self.get_server_version()
-            logger.debug("Server version: " + repr(self.server_version))
+            await self.RPC('server.ping')
 
-            # Five minutes isn't really enough anymore; looks like
-            # servers are killing 2-minute old idle connections now.
-            # But decreasing interval this seems rude... actually   
-            # much DDoS prevention in action now-a-days, so hard to workaround.
-            await asyncio.sleep(120)
+            # Docs now say "The server may disconnect clients that have sent
+            # no requests for roughly 10 minutes" ... so use 5 minutes here
+            await asyncio.sleep(5*60)
 
 
     def _send_request(self, method, params=[], is_subscribe = False):
@@ -191,6 +195,11 @@ class StratumClient:
             Send a new request to the server. Serialized the JSON and
             tracks id numbers and optional callbacks.
         '''
+
+        if method.startswith('blockchain.address.'):
+            # these methods have changed, but we can patch them
+            method, params = self.patch_addr_methods(method, params)
+
         # pick a new ID
         self.next_id += 1
         req_id = self.next_id
@@ -206,6 +215,8 @@ class StratumClient:
         fut = asyncio.Future(loop=self.loop)
 
         self.inflight[req_id] = (msg, fut)
+
+        logger.debug(" REQ: %r" % msg)
 
         # send it via the transport, which serializes it
         if not self.protocol:
@@ -229,7 +240,7 @@ class StratumClient:
             Has already been unframed and deserialized into an object.
         '''
 
-        #logger.debug("MSG: %r" % msg)
+        logger.debug("RESP: %r" % msg)
 
         resp_id = msg.get('id', None)
 
@@ -287,10 +298,6 @@ class StratumClient:
         '''
         assert '.' in method
         #assert not method.endswith('subscribe')
-
-        if method.startswith('blockchain.address.') and self.protocol_version >= 1.3:
-            # these methods have changed, but we can patch it.
-            method, params = self.patch_addr_methods(method, params)
 
         return self._send_request(method, params)
 

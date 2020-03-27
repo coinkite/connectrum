@@ -9,8 +9,10 @@ import sys, asyncio, argparse, json
 from connectrum.client import StratumClient
 from connectrum.svr_info import ServerInfo
 from connectrum import ElectrumErrorResponse
+import logging
 
-
+logging.basicConfig(level=logging.INFO)
+#logging.getLogger('connectrum').setLevel(level=logging.DEBUG)
 
 async def interact(conn, svr, connector, method, args, verbose=False):
 
@@ -21,7 +23,7 @@ async def interact(conn, svr, connector, method, args, verbose=False):
         return -1
 
     print("\nConnected to: %s" % svr)
-    print("Server version: %s\n" % conn.server_version)
+    print("Server version: %s" % conn.server_version)
     print("Server protocol: %s\n" % conn.protocol_version)
 
     if verbose:

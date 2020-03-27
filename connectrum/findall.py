@@ -5,7 +5,7 @@ import bottom, random, time, asyncio
 from .svr_info import ServerInfo
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('connectrum')
 
 class IrcListener(bottom.Client):
     def __init__(self, irc_nickname=None, irc_password=None, ssl=True):
