@@ -36,7 +36,7 @@ class StratumClient:
         self.subscriptions = defaultdict(list)
 
         # report our version, honestly; and indicate we only understand 1.4
-        self.my_version_args = ('Connectrum/{__version__}}', '1.4')
+        self.my_version_args = (f'Connectrum/{__version__}', '1.4')
 
         # these are valid after connection
         self.server_version = None          # 'ElectrumX 1.13.0' or similar
