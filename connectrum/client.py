@@ -233,6 +233,50 @@ class StratumClient:
 
         return fut if not is_subscribe else (fut, waitQ)
 
+    def _send_batch_requests(self, requests):
+        '''
+            Send a new batch of requests to the server.
+        '''
+
+        full_msg = []
+
+        for method, *params in requests:
+
+            if method.startswith('blockchain.address.'):
+                # these methods have changed, but we can patch them
+                method, params = self.patch_addr_methods(method, params)
+
+            # pick a new ID
+            self.next_id += 1
+            req_id = self.next_id
+
+            # serialize as JSON
+            msg = {'id': req_id, 'method': method, 'params': params}
+
+            full_msg.append(msg)
+
+        fut = asyncio.Future(loop=self.loop)
+        first_msg = full_msg[0]
+
+        self.inflight[first_msg['id']] = (full_msg, fut)
+
+        logger.debug(" REQ: %r" % full_msg)
+
+        # send it via the transport, which serializes it
+        if not self.protocol:
+            logger.debug("Need to reconnect to server")
+
+            async def connect_first():
+                await self.reconnect()
+                self.protocol.send_data(full_msg)
+
+            self.loop.create_task(connect_first())
+        else:
+            # typical case, send request immediately, response is a future
+            self.protocol.send_data(full_msg)
+
+        return fut
+
     def _got_response(self, msg):
         '''
             Decode and dispatch responses from the server.
@@ -241,6 +285,44 @@ class StratumClient:
         '''
 
         logger.debug("RESP: %r" % msg)
+
+        if isinstance(msg, list):
+            # we are dealing with a batch request
+
+            inf = None
+            for response in msg:
+                resp_id = response.get('id', None)
+                inf = self.inflight.pop(resp_id, None)
+                if inf:
+                    break
+
+            if not inf:
+                first_msg = msg[0]
+                logger.error("Incoming server message had unknown ID in it: %s" % first_msg['id'])
+                return
+
+            # it's a future which is done now
+            full_req, rv = inf
+
+            response_map = {resp['id']: resp for resp in msg}
+            results = []
+            for request in full_req:
+                req_id = request.get('id', None)
+
+                response = response_map.get(req_id, None)
+                if not response:
+                    logger.error("Incoming server message had missing ID: %s" % req_id)
+
+                error = response.get('error', None)
+                if error:
+                    logger.info("Error response: '%s'" % error)
+                    rv.set_exception(ElectrumErrorResponse(error, request))
+
+                result = response.get('result')
+                results.append(result)
+
+            rv.set_result(results)
+            return
 
         resp_id = msg.get('id', None)
 
@@ -300,6 +382,27 @@ class StratumClient:
         #assert not method.endswith('subscribe')
 
         return self._send_request(method, params)
+
+    def batch_rpc(self, requests):
+        '''
+            Perform a batch of remote commands.
+
+            Expects a list of ("method name", params...) tuples, where the method name should look
+            like:
+
+                blockchain.address.get_balance
+
+            .. and sometimes take arguments, all of which are positional.
+
+            Returns a future which will you should await for the list of results for each command
+            from the server. Failures are returned as exceptions.
+        '''
+        for request in requests:
+            assert isinstance(request, tuple)
+            method, *params = request
+            assert '.' in method
+
+        return self._send_batch_requests(requests)
 
     def patch_addr_methods(self, method, params):
         # blockchain.address.get_balance(addr) => blockchain.scripthash.get_balance(sh)
