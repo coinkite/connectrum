@@ -7,6 +7,7 @@ from importlib import util as importutil
 import json, warnings, asyncio, ssl
 from .protocol import StratumProtocol
 from . import __version__
+from script import BitcoinScript
 
 # Check if aiosocks is present, and load it if it is.
 if importutil.find_spec("aiosocks") is not None:
@@ -408,13 +409,9 @@ class StratumClient:
         # blockchain.address.get_balance(addr) => blockchain.scripthash.get_balance(sh)
         from hashlib import sha256
         from binascii import b2a_hex
-        try:
-            from pycoin.symbols.btc import network as BTC       # bitcoin only!
-        except ImportError:
-            raise RuntimeError("we can patch obsolete protocol msgs, but need pycoin>=0.90")
 
         # convert from base58 into sha256(binary of script)?
-        addr = BTC.parse(params[0])
+        addr = BitcoinScript.toAddress(params[0])
         sh = sha256(addr.script()).digest()[::-1]
 
         return method.replace('.address.', '.scripthash.'), \
