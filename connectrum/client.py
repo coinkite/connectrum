@@ -61,6 +61,11 @@ class StratumClient:
         self.protocol = None
         logger.warn("Electrum server connection lost")
 
+        for (_, fut) in self.inflight.values():
+            fut.set_exception(ElectrumErrorResponse("Electrum server connection lost"))
+
+        self.inflight.clear()
+
         # cleanup keep alive task
         if self.ka_task:
             self.ka_task.cancel()
