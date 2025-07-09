@@ -34,6 +34,7 @@ In `examples` you will find a number little example programs.
 Version History
 ===============
 
+- **0.8.2** Indicate we support protocol version 1.4.2, `StratumClient.protocol_version` now string
 - **0.8.1** Handle protocol version reporting correctly, use 'ping' msg. (Says we are 1.4)
 - **0.8.0** Support for ElectrumX protocol 1.4 with some helpers to restore useful functions.
 - **0.7.4** Add `actual_connection` atrribute on `StratumClient` with some key details
