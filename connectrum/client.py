@@ -24,7 +24,7 @@ logger = logging.getLogger('connectrum')
 class StratumClient:
 
 
-    def __init__(self, loop=None):
+    def __init__(self, loop=None, my_proto_version='1.4.2'):
         '''
             Setup state needed to handle req/resp from a single Stratum server.
             Requires a transport (TransportABC) object to do the communication.
@@ -35,12 +35,12 @@ class StratumClient:
         self.inflight = {}
         self.subscriptions = defaultdict(list)
 
-        # report our version, honestly; and indicate we only understand 1.4
-        self.my_version_args = (f'Connectrum/{__version__}', '1.4')
+        # report our version, honestly; and indicate we only understand indicated protocol
+        self.my_version_args = (f'Connectrum/{__version__}', my_proto_version)
 
         # these are valid after connection
         self.server_version = None          # 'ElectrumX 1.13.0' or similar
-        self.protocol_version = None        # float(1.4) or similar
+        self.protocol_version = None        # string '1.4.2' or similar
 
         self.actual_connection = {}
 
@@ -182,7 +182,7 @@ class StratumClient:
         # fetch version strings, save them
         # - can only be done once in v1.4
         self.server_version, pv = await self.RPC('server.version', *self.my_version_args)
-        self.protocol_version = float(pv)
+        self.protocol_version = str(pv)     # expect 1.4.2
 
     async def _keepalive(self):
         '''
