@@ -33,7 +33,7 @@ class StratumProtocol(asyncio.Protocol):
             if not line: continue
 
             try:
-                msg = line.decode('utf-8', "error").strip()
+                msg = line.decode('utf-8', "strict").strip()
             except UnicodeError as exc:
                 logger.exception("Encoding issue on %r" % line)
                 self.connection_lost(exc)
