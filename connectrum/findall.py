@@ -109,7 +109,7 @@ class IrcListener(bottom.Client):
         # Trigger an event that may cascade to a client_connect.
         # Don't continue until a client_connect occurs, which may be never.
 
-        logger.warn("Disconnected (will reconnect)")
+        logger.warning("Disconnected (will reconnect)")
 
         # Note that we're not in a coroutine, so we don't have access
         # to await and asyncio.sleep
