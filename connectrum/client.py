@@ -59,7 +59,7 @@ class StratumClient:
             return
 
         self.protocol = None
-        logger.warn("Electrum server connection lost")
+        logger.warning("Electrum server connection lost")
 
         for (_, fut) in self.inflight.values():
             fut.set_exception(ElectrumErrorResponse("Electrum server connection lost"))
